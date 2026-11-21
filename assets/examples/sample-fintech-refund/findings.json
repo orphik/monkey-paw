@@ -1,0 +1,130 @@
+{
+  "schema_version": "1.0",
+  "mode": "brownfield",
+  "draft_title": "Merchant Dashboard: Self-Serve Customer Refunds",
+  "findings": [
+    {
+      "id": "MP-001",
+      "title": "Double-Refund Race on Concurrent Requests",
+      "exploit_class": "concurrency_race",
+      "spec_quote": "Make sure we don't refund more than the original charge.",
+      "monkeys_paw_grant": "A literal agent reads `charge.refunded_cents` in Python memory, checks `refunded_cents + request.amount_cents <= amount_cents`, calls Stripe, and writes back. Double-clicking the Refund button or parallel tabs both pass the read check at t=0ms and issue two Stripe refunds totaling 200% of the payment.",
+      "repo_citations": [
+        "services/billing/models/charge.py:29",
+        "services/billing/api/charges.py:88"
+      ],
+      "eng_options": {
+        "option_a": {
+          "label": "Pessimistic Row Lock + SQL Check Constraint",
+          "design": "Acquire `SELECT ... FOR UPDATE NOWAIT` on `charges` inside a DB transaction, enforce `CHECK (refunded_cents <= amount_cents)` on `charges`, and derive a deterministic Stripe idempotency key from `(charge_id, refund_seq)`."
+        },
+        "option_b": {
+          "label": "Client Idempotency Key Table + Optimistic Version CAS",
+          "design": "Require an `Idempotency-Key` UUID header persisted in `refund_idempotency_keys` and execute `UPDATE charges SET refunded_cents = refunded_cents + :amt, version = version + 1 WHERE id = :id AND version = :ver AND refunded_cents + :amt <= amount_cents`."
+        }
+      },
+      "pm_tradeoff": "Option A blocks simultaneous double-clicks immediately with a clear 'Refund already in progress' banner and zero extra UI state (ships 1 day faster). Option B silently replays the same receipt on network retries without error banners (+1 schema table).",
+      "resolution": {
+        "selected": "option_a",
+        "rationale": "Dashboard runs on desktop browsers; immediate 409 lock guard + SQL CHECK constraint eliminates double-refund risk cleanly.",
+        "ears_clauses": [
+          "WHEN `POST /v1/charges/{charge_id}/refund` is invoked, THE SYSTEM SHALL acquire a `SELECT ... FOR UPDATE NOWAIT` lock on `charges` before evaluating `refunded_cents + refund_amount_cents <= amount_cents`.",
+          "IF a concurrent transaction holds the row lock on `charges` or `refunded_cents + refund_amount_cents > amount_cents`, THEN THE SYSTEM SHALL abort before calling Stripe and return HTTP 409 Conflict or HTTP 422 Unprocessable Entity respectively."
+        ]
+      }
+    },
+    {
+      "id": "MP-002",
+      "title": "Split-Brain Ledger When DB Commit Fails Post-Stripe Refund",
+      "exploit_class": "partial_mutation",
+      "spec_quote": "issue full or partial refunds via Stripe, update the order status to `REFUNDED`, and send the customer a confirmation email.",
+      "monkeys_paw_grant": "Agent calls `stripe.Refund.create()` synchronously inside the route handler, then updates `Order.status = 'REFUNDED'` and calls SendGrid. First, a partial refund wrongly marks the entire order `REFUNDED`; second, if Postgres or SendGrid times out after Stripe succeeds, money leaves the platform while the ledger still shows `PAID`.",
+      "repo_citations": [
+        "services/billing/models/order.py:44",
+        "services/billing/workers/stripe_webhooks.py:112",
+        "services/notifications/mailer.py:19"
+      ],
+      "eng_options": {
+        "option_a": {
+          "label": "Two-Phase RefundAttempt Ledger + Webhook Reconciliation",
+          "design": "Commit a `refund_attempts` row (`status='PENDING'`) with deterministic key `refund:{attempt_id}` before calling Stripe; transition order to `PARTIALLY_REFUNDED` when `0 < refunded_cents < amount_cents` and `REFUNDED` only at full amount; enqueue email via worker on `charge.refunded`."
+        },
+        "option_b": {
+          "label": "Async Transactional Outbox Queue",
+          "design": "Write `refund_outbox` record atomically in Postgres and return `202 Accepted` (`REFUND_PROCESSING`); background Celery worker executes Stripe refund, reconciles ledger state, and dispatches confirmation email."
+        }
+      },
+      "pm_tradeoff": "Option A gives the merchant an instant confirmed/failed receipt in ~600ms while distinguishing 'Partially Refunded' from 'Refunded'. Option B returns a 'Processing refund...' spinner for 2-5 seconds and requires polling on the Charge Details page.",
+      "resolution": {
+        "selected": "option_a",
+        "rationale": "Merchants expect immediate confirmation when on the phone with a customer, and partial refunds must not mark full orders refunded.",
+        "ears_clauses": [
+          "WHEN a refund request passes validation, THE SYSTEM SHALL persist a `refund_attempts` record in `PENDING` status prior to invoking `stripe.Refund.create(idempotency_key=attempt_id)`.",
+          "WHEN `refunded_cents` is greater than `0` and less than `amount_cents`, THE SYSTEM SHALL set `Order.status` to `PARTIALLY_REFUNDED`, transitioning `Order.status` to `REFUNDED` only when `refunded_cents == amount_cents`.",
+          "WHEN the `refund_attempts` record transitions to `SUCCEEDED` (synchronously or via `charge.refunded` webhook), THE SYSTEM SHALL enqueue the customer confirmation email asynchronously so SMTP latency cannot roll back ledger persistence."
+        ]
+      }
+    },
+    {
+      "id": "MP-003",
+      "title": "Cross-Merchant IDOR and Uncapped Support Agent Refunds",
+      "exploit_class": "auth_boundary_leak",
+      "spec_quote": "Add a 'Refund Payment' button on the Charge Details page (`POST /v1/charges/{charge_id}/refund`) in the Merchant Dashboard so merchants and support agents can issue full or partial refunds",
+      "monkeys_paw_grant": "Agent attaches generic `Depends(get_current_user)` and fetches `Charge.by_id(charge_id)`. Any authenticated merchant viewer can guess or enumerate `charge_id` values belonging to other merchants, and tier-1 support contractors can drain `$50,000` enterprise charges unilaterally.",
+      "repo_citations": [
+        "services/auth/dependencies.py:37",
+        "services/auth/enums.py:12",
+        "services/billing/api/charges.py:88"
+      ],
+      "eng_options": {
+        "option_a": {
+          "label": "Strict Tenant Scoping + Owner/Finance RBAC Gate",
+          "design": "Scope charge lookup by `(id = :charge_id AND merchant_id = :actor.merchant_id)` for merchant tokens (returning 404 on mismatch), restrict merchant roles to `MERCHANT_OWNER` / `MERCHANT_FINANCE`, and cap `INTERNAL_SUPPORT` single-charge refunds at `$250` with audit log actor recording."
+        },
+        "option_b": {
+          "label": "Tenant Scoping + Dual-Control Approval Workflow",
+          "design": "Enforce tenant scoping plus a `refund_approvals` state machine where `INTERNAL_SUPPORT` or `MERCHANT_MEMBER` can draft refunds above `$250` that pause in `AWAITING_APPROVAL` until a `FINANCE_ADMIN` approves."
+        }
+      },
+      "pm_tradeoff": "Option A ships immediately: support resolves 95% of everyday tickets (<=$250) in one click and escalates high-value refunds to Finance. Option B adds an approval inbox UI (+3 days engineering scope).",
+      "resolution": {
+        "selected": "option_a",
+        "rationale": "96% of Zendesk refund tickets are under $250; the dual-control inbox can be parked for Phase 2.",
+        "ears_clauses": [
+          "WHEN a merchant-scoped caller invokes `POST /v1/charges/{charge_id}/refund`, THE SYSTEM SHALL filter the target charge by `id = charge_id AND merchant_id = caller.merchant_id` and require role `MERCHANT_OWNER` or `MERCHANT_FINANCE`, returning HTTP 404 on tenant mismatch and HTTP 403 on insufficient role.",
+          "WHEN a caller with role `INTERNAL_SUPPORT` requests a refund exceeding `25000` cents ($250.00), THE SYSTEM SHALL reject the request with HTTP 403 Forbidden and record the blocked attempt in `audit_events`."
+        ]
+      }
+    },
+    {
+      "id": "MP-004",
+      "title": "Refunded Subscription Charge Leaves Paid Entitlements Active",
+      "exploit_class": "orphaned_state",
+      "spec_quote": "update the order status to `REFUNDED`, and send the customer a confirmation email.",
+      "monkeys_paw_grant": "Agent updates `orders.status = 'REFUNDED'` while leaving the linked `entitlements` cache and `api_quotas` row active until next year's renewal—allowing users to buy an annual plan, claim an immediate full refund, and retain paid Pro seats for 12 months.",
+      "repo_citations": [
+        "services/entitlements/models.py:21",
+        "services/entitlements/cache.py:53"
+      ],
+      "eng_options": {
+        "option_a": {
+          "label": "Automatic Entitlement Revocation on Full Refund",
+          "design": "When a charge achieves 100% `REFUNDED` status, revoke linked `entitlements` (`status='REVOKED_REFUND'`) and invalidate the Redis entitlement key; preserve active entitlements on partial goodwill/proration refunds."
+        },
+        "option_b": {
+          "label": "Explicit `revoke_access` Boolean Toggle on Refund Request",
+          "design": "Add required `revoke_entitlements: bool` field to `RefundRequestSchema` (default `true` for full refunds, `false` for partial refunds) so operators explicitly choose whether goodwill credit keeps access active."
+        }
+      },
+      "pm_tradeoff": "Option A has zero extra form clutter—full refunds revoke paid seats automatically while partial refunds keep the customer active. Option B adds a checkbox to the Refund modal so support can grant a 100% outage refund without cutting off access.",
+      "resolution": {
+        "selected": "option_b",
+        "rationale": "Support occasionally grants 100% refunds for SLA incidents where revoking customer seats would worsen the escalation.",
+        "ears_clauses": [
+          "WHEN `POST /v1/charges/{charge_id}/refund` is submitted, THE SYSTEM SHALL accept an explicit `revoke_entitlements` boolean (defaulting to `true` when `refund_amount_cents == remaining_refundable_cents` and `false` otherwise).",
+          "WHEN a refund succeeds with `revoke_entitlements == true`, THE SYSTEM SHALL set linked `entitlements.status = 'REVOKED_REFUND'` and evict the tenant's cached entitlement entry within the same workflow."
+        ]
+      }
+    }
+  ]
+}

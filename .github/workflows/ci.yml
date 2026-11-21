@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.10", "3.12", "3.13"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run unit and compliance test suite (zero pip dependencies)
+        run: python -m unittest discover -s tests -v
+
+      - name: Run CLI smoke tests against bundled fixture and repository
+        shell: bash
+        run: |
+          python scripts/extract_repo_surface.py --repo . --out .monkey-paw/surface.json
+          python scripts/validate_findings.py --findings assets/examples/sample-fintech-refund/findings.json --require-resolved
+          python scripts/compile_locked_spec.py \
+            --draft assets/examples/sample-fintech-refund/raw-ticket.md \
+            --findings assets/examples/sample-fintech-refund/findings.json \
+            --format ears \
+            --out .monkey-paw/smoke-spec.md
+          python scripts/park_tangent.py \
+            --item "Add multi-currency settlement reporting" \
+            --category phase-2 \
+            --out .monkey-paw/smoke-parking-lot.md

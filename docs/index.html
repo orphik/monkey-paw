@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>monkey-paw — Pre-Code Malicious Compliance Referee Simulator</title>
+  <style>
+    :root {
+      --bg-0: #090b10;
+      --bg-1: #10141d;
+      --bg-2: #161c28;
+      --bg-3: #1e2636;
+      --border: #283246;
+      --border-bright: #3b4a68;
+      --text-0: #f1f5f9;
+      --text-1: #cbd5e1;
+      --text-2: #8b9bb4;
+      --amber: #f59e0b;
+      --amber-soft: rgba(245, 158, 11, 0.12);
+      --crimson: #f43f5e;
+      --crimson-soft: rgba(244, 63, 94, 0.12);
+      --emerald: #10b981;
+      --emerald-soft: rgba(16, 185, 129, 0.13);
+      --cyan: #38bdf8;
+      --cyan-soft: rgba(56, 189, 248, 0.12);
+      --violet: #a78bfa;
+      --violet-soft: rgba(167, 139, 250, 0.12);
+      --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at 15% 0%, #131a29 0%, var(--bg-0) 55%);
+      color: var(--text-0);
+      font-family: var(--sans);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    a {
+      color: var(--cyan);
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+
+    /* Top Header */
+    .topbar {
+      border-bottom: 1px solid var(--border);
+      background: rgba(9, 11, 16, 0.88);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      padding: 0.85rem 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #f59e0b 0%, #e11d48 100%);
+      display: grid;
+      place-items: center;
+      font-family: var(--mono);
+      font-weight: 800;
+      color: #090b10;
+      font-size: 0.95rem;
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.25);
+    }
+
+    .brand-title {
+      font-family: var(--mono);
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-sub {
+      font-size: 0.78rem;
+      color: var(--text-2);
+    }
+
+    .header-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      padding: 0.28rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--bg-1);
+      color: var(--text-1);
+    }
+
+    .pill-offline {
+      border-color: rgba(16, 185, 129, 0.4);
+      background: var(--emerald-soft);
+      color: #34d399;
+    }
+
+    .install-cmd {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      padding: 0.32rem 0.7rem;
+      border-radius: 6px;
+      background: var(--bg-2);
+      border: 1px solid var(--border-bright);
+      color: var(--amber);
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .install-cmd:hover {
+      border-color: var(--amber);
+      background: var(--bg-3);
+    }
+
+    /* Scenario Selector Strip */
+    .scenario-bar {
+      max-width: 1520px;
+      margin: 1.1rem auto 0;
+      padding: 0 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.85rem;
+    }
+
+    .scenario-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+    }
+
+    .scenario-btn {
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      color: var(--text-1);
+      padding: 0.55rem 0.95rem;
+      border-radius: 8px;
+      font-family: var(--sans);
+      font-size: 0.86rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.15s ease;
+    }
+    .scenario-btn:hover {
+      border-color: var(--border-bright);
+      background: var(--bg-2);
+    }
+    .scenario-btn.active {
+      background: var(--amber-soft);
+      border-color: var(--amber);
+      color: #fde68a;
+    }
+
+    .scenario-num {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .status-cluster {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .lock-badge {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--amber);
+      background: var(--amber-soft);
+      color: #fbbf24;
+    }
+    .lock-badge.locked {
+      border-color: var(--emerald);
+      background: var(--emerald-soft);
+      color: #34d399;
+    }
+
+    .action-btn {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      color: var(--text-1);
+      font-size: 0.78rem;
+      font-family: var(--mono);
+      padding: 0.42rem 0.72rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .action-btn:hover {
+      border-color: var(--cyan);
+      color: var(--text-0);
+    }
+
+    /* Main Split Studio */
+    .workspace {
+      max-width: 1520px;
+      margin: 1rem auto 2.5rem;
+      padding: 0 1.5rem;
+      display: grid;
+      grid-template-columns: 1.08fr 0.92fr;
+      gap: 1.25rem;
+      align-items: start;
+    }
+
+    @media (max-width: 1080px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 0.8rem 1.1rem;
+      background: var(--bg-2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .panel-title {
+      font-family: var(--mono);
+      font-size: 0.83rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-1);
+    }
+
+    /* Draft Ticket Box */
+    .draft-box {
+      padding: 1rem 1.15rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(244, 63, 94, 0.05) 0%, transparent 100%);
+    }
+
+    .draft-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      font-family: var(--mono);
+      font-size: 0.74rem;
+      color: var(--text-2);
+    }
+
+    .draft-ticket-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.45rem;
+      color: var(--text-0);
+    }
+
+    .draft-quote-block {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      color: var(--text-1);
+      background: var(--bg-0);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--crimson);
+      padding: 0.75rem 0.9rem;
+      border-radius: 6px;
+      white-space: pre-wrap;
+    }
+
+    .surface-strip {
+      margin-top: 0.65rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      align-items: center;
+    }
+
+    .surface-chip {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      padding: 0.16rem 0.5rem;
+      border-radius: 4px;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      color: var(--cyan);
+    }
+
+    /* Decision Cards Stack */
+    .cards-container {
+      padding: 1rem 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .decision-card {
+      border: 1px solid var(--border-bright);
+      border-radius: 10px;
+      background: var(--bg-0);
+      padding: 1rem;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .decision-card.unresolved {
+      border-color: rgba(245, 158, 11, 0.65);
+      box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.15);
+    }
+
+    .decision-card.resolved {
+      border-color: rgba(16, 185, 129, 0.5);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.55rem;
+    }
+
+    .card-id-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .mp-id {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      background: var(--bg-2);
+      color: var(--amber);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+
+    .card-heading {
+      font-size: 0.94rem;
+      font-weight: 700;
+      color: var(--text-0);
+    }
+
+    .exploit-tag {
+      font-family: var(--mono);
+      font-size: 0.71rem;
+      padding: 0.16rem 0.52rem;
+      border-radius: 999px;
+      background: var(--crimson-soft);
+      color: #fda4af;
+      border: 1px solid rgba(244, 63, 94, 0.35);
+    }
+
+    .paw-grant {
+      font-size: 0.83rem;
+      color: var(--text-1);
+      background: rgba(244, 63, 94, 0.07);
+      border-left: 2px solid var(--crimson);
+      padding: 0.55rem 0.75rem;
+      border-radius: 0 6px 6px 0;
+      margin-bottom: 0.65rem;
+    }
+
+    .paw-grant strong {
+      color: #fda4af;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+
+    .citations-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .citation-pill {
+      font-family: var(--mono);
+      font-size: 0.69rem;
+      color: var(--text-2);
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      padding: 0.12rem 0.45rem;
+      border-radius: 4px;
+    }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65rem;
+      margin-bottom: 0.7rem;
+    }
+
+    @media (max-width: 680px) {
+      .options-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .opt-btn {
+      text-align: left;
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.7rem 0.8rem;
+      color: var(--text-1);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+    .opt-btn:hover {
+      border-color: var(--cyan);
+      background: var(--bg-2);
+    }
+    .opt-btn.selected {
+      background: var(--emerald-soft);
+      border-color: var(--emerald);
+      color: var(--text-0);
+      box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.3);
+    }
+
+    .opt-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--cyan);
+    }
+    .opt-btn.selected .opt-header {
+      color: #34d399;
+    }
+
+    .opt-design {
+      font-size: 0.8rem;
+      line-height: 1.42;
+    }
+
+    .pm-box {
+      background: var(--violet-soft);
+      border: 1px solid rgba(167, 139, 250, 0.28);
+      border-radius: 7px;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.8rem;
+      color: #ddd6fe;
+    }
+
+    .pm-box strong {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--violet);
+      text-transform: uppercase;
+      margin-right: 0.35rem;
+    }
+
+    /* Tangent Trap Box */
+    .tangent-section {
+      border-top: 1px solid var(--border);
+      padding: 1rem 1.15rem;
+      background: rgba(56, 189, 248, 0.03);
+    }
+
+    .tangent-title {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--amber);
+      margin-bottom: 0.3rem;
+    }
+
+    .tangent-sub {
+      font-size: 0.79rem;
+      color: var(--text-2);
+      margin-bottom: 0.7rem;
+    }
+
+    .preset-tangents {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .preset-tangent-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65rem;
+      background: var(--bg-0);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 0.5rem 0.7rem;
+      font-size: 0.8rem;
+    }
+
+    .trap-btn {
+      white-space: nowrap;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      padding: 0.28rem 0.6rem;
+      border-radius: 5px;
+      border: 1px solid var(--amber);
+      background: var(--amber-soft);
+      color: #fcd34d;
+      cursor: pointer;
+    }
+    .trap-btn:hover:not(:disabled) {
+      background: rgba(245, 158, 11, 0.24);
+    }
+    .trap-btn:disabled {
+      opacity: 0.5;
+      border-color: var(--emerald);
+      color: #34d399;
+      background: var(--emerald-soft);
+      cursor: default;
+    }
+
+    .custom-tangent-form {
+      display: flex;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+    }
+
+    .tangent-input {
+      flex: 1;
+      min-width: 200px;
+      background: var(--bg-0);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.45rem 0.65rem;
+      color: var(--text-0);
+      font-size: 0.81rem;
+    }
+
+    .tangent-select {
+      background: var(--bg-0);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.45rem 0.55rem;
+      color: var(--text-1);
+      font-family: var(--mono);
+      font-size: 0.76rem;
+    }
+
+    /* Right Output Compiler Pane */
+    .sticky-compiler {
+      position: sticky;
+      top: 4.5rem;
+    }
+
+    .format-tabs {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+    }
+
+    .fmt-tab {
+      font-family: var(--mono);
+      font-size: 0.73rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--bg-1);
+      color: var(--text-2);
+      cursor: pointer;
+    }
+    .fmt-tab.active {
+      border-color: var(--cyan);
+      background: var(--cyan-soft);
+      color: #7dd3fc;
+      font-weight: 700;
+    }
+
+    .compiler-toolbar {
+      padding: 0.6rem 1.1rem;
+      background: var(--bg-0);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      font-family: var(--mono);
+      font-size: 0.74rem;
+      color: var(--text-2);
+    }
+
+    .code-output {
+      padding: 1.05rem 1.15rem;
+      font-family: var(--mono);
+      font-size: 0.79rem;
+      line-height: 1.58;
+      color: #e2e8f0;
+      background: #07090e;
+      max-height: 74vh;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .kw-ears {
+      color: #34d399;
+      font-weight: 700;
+    }
+    .kw-warn {
+      color: #fbbf24;
+      font-weight: 700;
+    }
+    .kw-head {
+      color: #7dd3fc;
+      font-weight: 700;
+    }
+
+    .footer-note {
+      max-width: 1520px;
+      margin: 0 auto 2rem;
+      padding: 0 1.5rem;
+      font-size: 0.78rem;
+      color: var(--text-2);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon">MP</div>
+      <div>
+        <div class="brand-title">monkey-paw // Referee Simulator</div>
+        <div class="brand-sub">Pre-Code Malicious Compliance Referee for Spec-Driven Development</div>
+      </div>
+    </div>
+    <div class="header-meta">
+      <span class="pill pill-offline">Zero API Keys · 100% Deterministic</span>
+      <span class="pill">agentskills.io + MCP stdio</span>
+      <button class="install-cmd" id="copyInstallBtn" title="Click to copy install command">
+        $ npx skills add orphik/monkey-paw
+      </button>
+    </div>
+  </header>
+
+  <section class="scenario-bar" aria-label="Broken Ticket Scenarios">
+    <div class="scenario-tabs" id="scenarioTabs"></div>
+    <div class="status-cluster">
+      <span class="lock-badge" id="lockStatusBadge">2/3 LOCKED</span>
+      <button class="action-btn" id="lockAllBtn">Lock Remaining (Option A)</button>
+      <button class="action-btn" id="resetScenarioBtn">Reset Card Choices</button>
+    </div>
+  </section>
+
+  <main class="workspace">
+    <!-- Left Column: Draft Ticket + Bilingual Decision Cards + Tangent Trap -->
+    <section class="panel" aria-label="Referee Decision Cards">
+      <div class="panel-header">
+        <span class="panel-title">1. Ambiguous Ticket + Bilingual Decision Cards</span>
+        <span class="pill" id="surfaceModePill">mode: brownfield</span>
+      </div>
+
+      <div class="draft-box">
+        <div class="draft-meta">
+          <span id="ticketSourceLabel">Linear Ticket</span>
+          <span>Read-only scan: .monkey-paw/surface.json</span>
+        </div>
+        <div class="draft-ticket-title" id="draftTitle"></div>
+        <div class="draft-quote-block" id="draftRawText"></div>
+        <div class="surface-strip" id="surfaceChips"></div>
+      </div>
+
+      <div class="cards-container" id="cardsContainer"></div>
+
+      <div class="tangent-section">
+        <div class="tangent-title">Tangent Trap -&gt; PARKING-LOT.md</div>
+        <div class="tangent-sub">
+          Keep spec refinement under 10 minutes. Route off-scope refactors and Phase-2 ideas into
+          <code>PARKING-LOT.md</code> without derailing v1 decisions:
+        </div>
+        <div class="preset-tangents" id="presetTangents"></div>
+        <form class="custom-tangent-form" id="customTangentForm">
+          <input
+            type="text"
+            class="tangent-input"
+            id="customTangentInput"
+            placeholder="Trap a teammate tangent (e.g. 'Rebuild webhook dashboard in GraphQL')..."
+            aria-label="Custom off-scope tangent"
+          />
+          <select class="tangent-select" id="customTangentCategory" aria-label="Tangent category">
+            <option value="phase-2">phase-2</option>
+            <option value="tech-debt">tech-debt</option>
+            <option value="ux-polish">ux-polish</option>
+            <option value="infra">infra</option>
+            <option value="open-question">open-question</option>
+          </select>
+          <button type="submit" class="trap-btn">+ Park in PARKING-LOT.md</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Right Column: Live EARS / Spec-Kit / OpenSpec / Jira / PARKING-LOT.md Output -->
+    <section class="panel sticky-compiler" aria-label="Compiled Specification Output">
+      <div class="panel-header">
+        <span class="panel-title">2. Live Referee Output</span>
+        <div class="format-tabs" id="formatTabs">
+          <button class="fmt-tab active" data-fmt="ears">SPEC.md (EARS)</button>
+          <button class="fmt-tab" data-fmt="spec-kit">Spec-Kit</button>
+          <button class="fmt-tab" data-fmt="openspec">OpenSpec</button>
+          <button class="fmt-tab" data-fmt="jira">Jira</button>
+          <button class="fmt-tab" data-fmt="parking">PARKING-LOT.md (<span id="parkCountBadge">0</span>)</button>
+        </div>
+      </div>
+      <div class="compiler-toolbar">
+        <span id="outputFilenameLabel">Output: SPEC.md · Format: EARS (WHEN ... THE SYSTEM SHALL ...)</span>
+        <div style="display:flex; gap:0.45rem;">
+          <button class="action-btn" id="copySpecBtn">Copy Markdown</button>
+          <button class="action-btn" id="downloadSpecBtn">Download File</button>
+        </div>
+      </div>
+      <pre class="code-output" id="compiledOutput"></pre>
+    </section>
+  </main>
+
+  <footer class="footer-note">
+    <span>MIT Licensed · Python 3.10+ stdlib only · Zero source-code edits (writes only SPEC.md &amp; PARKING-LOT.md)</span>
+    <span>Compatible with Antigravity, Claude Code, Cursor, Codex, Copilot, Windsurf, Kiro &amp; Gemini CLI</span>
+  </footer>
+
+  <script>
+    const SCENARIOS = [
+      {
+        id: "saas-billing-pause",
+        number: "01",
+        tabLabel: "SaaS Billing Pause",
+        source: "Product Ticket #BILL-412 · Stack: Next.js + Prisma + Stripe + BullMQ",
+        title: "SaaS Billing Pause (Self-Serve Churn Save)",
+        rawTicket:
+          "Let users pause their subscription for up to 90 days from Billing Settings so they don't churn when between projects. While paused, don't bill them, and automatically resume their plan after 90 days.",
+        surfaceChips: [
+          "prisma: Subscription (schema.prisma:48)",
+          "prisma: ApiKey (schema.prisma:92)",
+          "route: POST /api/billing/pause (app/api/billing/pause/route.ts:14)",
+          "worker: new Worker('scheduled-exports') (workers/exports.ts:21)",
+          "auth: requireAuth (lib/auth/session.ts:33)"
+        ],
+        findings: [
+          {
+            id: "MP-001",
+            title: "Paused Accounts Keep API Keys & Background Workers Running Free",
+            exploit_class: "orphaned_state",
+            spec_quote: "While paused, don't bill them, and automatically resume their plan after 90 days.",
+            monkeys_paw_grant:
+              "A literal agent flips `Subscription.status = 'PAUSED'` and skips Stripe invoicing, leaving `ApiKey` bearer tokens and hourly `scheduled-exports` BullMQ jobs active—giving paused workspaces 90 days of free production compute.",
+            repo_citations: ["prisma/schema.prisma:92", "workers/exports.ts:21"],
+            options: {
+              option_a: {
+                label: "Read-Only Dashboard + Middleware Gate",
+                design: "Keep keys and BullMQ schedules stored for 1-click resume, but reject non-GET API calls with HTTP 402 (`SUBSCRIPTION_PAUSED`) and skip `scheduled-exports` runs while `status == 'PAUSED'`.",
+                ears: [
+                  "WHILE `Subscription.status` equals `PAUSED`, THE SYSTEM SHALL allow read-only `GET` access to historical workspace data and reject mutating API/API-key requests with HTTP 402 (`SUBSCRIPTION_PAUSED`).",
+                  "WHILE `Subscription.status` equals `PAUSED`, THE SYSTEM SHALL skip execution of `scheduled-exports` worker jobs without deleting saved schedule configurations."
+                ]
+              },
+              option_b: {
+                label: "Hard Key Suspension + Queue Deregistration",
+                design: "Set `ApiKey.suspended_at = now()`, remove repeatable BullMQ jobs on pause, and re-register schedules when the subscription transitions back to `ACTIVE`.",
+                ears: [
+                  "WHEN `Subscription.status` transitions to `PAUSED`, THE SYSTEM SHALL mark all tenant `ApiKey` rows suspended and deregister repeatable `scheduled-exports` jobs from BullMQ.",
+                  "WHEN `Subscription.status` transitions from `PAUSED` to `ACTIVE`, THE SYSTEM SHALL clear `ApiKey.suspended_at` and re-hydration-schedule paused BullMQ export definitions."
+                ]
+              }
+            },
+            pm_tradeoff:
+              "Option A lets paused users still log in to view/download past work while blocking new compute (<10ms check, instant resume). Option B fully locks out API & background integrations until unpaused.",
+            defaultSelected: "option_a"
+          },
+          {
+            id: "MP-002",
+            title: "Pause Clicked on Renewal Day Races Stripe Invoice Finalization",
+            exploit_class: "concurrency_race",
+            spec_quote: "Let users pause their subscription for up to 90 days from Billing Settings... While paused, don't bill them",
+            monkeys_paw_grant:
+              "User clicks Pause at 00:00 UTC while Stripe is finalizing the monthly renewal webhook (`invoice.payment_succeeded`). Without row locking and pause-cooldown bounds, the user gets charged AND placed into `PAUSED`, or chains infinite 90-day pauses back-to-back forever.",
+            repo_citations: ["prisma/schema.prisma:48", "app/api/billing/pause/route.ts:14"],
+            options: {
+              option_a: {
+                label: "Period-End Effective Pause + 1-Pause-Per-Year Cap",
+                design: "Lock `Subscription` row `FOR UPDATE`, set `pause_collection` on Stripe effective at `current_period_end`, and enforce `pauses_used_rolling_12m < 1`.",
+                ears: [
+                  "WHEN `POST /api/billing/pause` is called, THE SYSTEM SHALL acquire a row lock on `Subscription` and schedule Stripe `pause_collection` effective at `current_period_end` so in-flight renewal invoices never race.",
+                  "IF `Subscription.pauses_used_rolling_12m >= 1`, THEN THE SYSTEM SHALL reject the pause request with HTTP 409 (`PAUSE_LIMIT_REACHED`)."
+                ]
+              },
+              option_b: {
+                label: "Immediate Prorated Credit Pause + Idempotency Key",
+                design: "Pause immediately using Stripe `pause_collection(behavior='mark_uncollectible')` guarded by deterministic idempotency key `pause:{sub_id}:{period_start}` and issue prorated credit balance.",
+                ears: [
+                  "WHEN `POST /api/billing/pause` is called mid-cycle, THE SYSTEM SHALL invoke Stripe `pause_collection` with idempotency key `pause:{subscription_id}:{current_period_start}` and credit unused days to customer balance.",
+                  "IF a Stripe invoice webhook arrives for a timestamp after `paused_at`, THEN THE SYSTEM SHALL void the draft invoice before capture."
+                ]
+              }
+            },
+            pm_tradeoff:
+              "Option A keeps current paid month active until cycle end (zero proration math, blocks infinite pause gaming). Option B freezes access immediately and credits unused days.",
+            defaultSelected: "option_a"
+          },
+          {
+            id: "MP-003",
+            title: "Expired Card on Day-90 Auto-Resume Silently Grants Free Tier or Wipes Data",
+            exploit_class: "silent_fallback",
+            spec_quote: "and automatically resume their plan after 90 days.",
+            monkeys_paw_grant:
+              "At day 90, the cron worker flips `Subscription.status = 'ACTIVE'` via Stripe, ignores `invoice.payment_failed` exceptions inside a try/catch block, and restores full paid quotas despite a declined card.",
+            repo_citations: ["app/api/webhooks/stripe/route.ts:77", "lib/auth/session.ts:33"],
+            options: {
+              option_a: {
+                label: "Fail-Closed `PAST_DUE` State + 7-Day Dunning",
+                design: "Keep workspace gated until `invoice.paid` webhook confirms funds; on card decline at day 90, transition to `PAST_DUE` (read-only preserved) and trigger 3 Stripe Smart Retries over 7 days.",
+                ears: [
+                  "WHEN the 90-day pause window expires, THE SYSTEM SHALL restore `ACTIVE` write quotas only after receiving confirmed payment on the resume invoice.",
+                  "IF the auto-resume charge fails or times out, THEN THE SYSTEM SHALL transition `Subscription.status` to `PAST_DUE`, maintain read-only workspace state, and notify only `BILLING_OWNER` roles."
+                ]
+              },
+              option_b: {
+                label: "48h Pre-Resume Card Pre-Check + Auto-Cancel Fallback",
+                design: "Send reminder email 72h prior and verify payment method status; if day-90 charge fails immediately, transition subscription to `CANCELED_READONLY` without retry storms.",
+                ears: [
+                  "WHEN a paused subscription reaches 72 hours prior to `resume_at`, THE SYSTEM SHALL dispatch a renewal notice to `BILLING_OWNER`.",
+                  "IF the day-90 resume payment is declined by Stripe, THEN THE SYSTEM SHALL transition `Subscription.status` directly to `CANCELED_READONLY` without restoring paid worker or API quotas."
+                ]
+              }
+            },
+            pm_tradeoff:
+              "Option A recovers ~40% of expired cards via a 7-day grace window without leaking free compute. Option B cleanly cancels declined accounts on day 90 with zero follow-up charges.",
+            defaultSelected: null
+          }
+        ],
+        presetTangents: [
+          {
+            item: "Migrate legacy Stripe Subscriptions v1 tables to usage-based Billing Meters",
+            category: "tech-debt",
+            reason: "Orthogonal billing-engine rewrite; revisit in Q3 pricing project",
+            finding: "MP-002"
+          },
+          {
+            item: "Add custom churn exit-survey video modal with coupon negotiation AI",
+            category: "phase-2",
+            reason: "Growth experiment outside core pause state-machine safety",
+            finding: "MP-001"
+          }
+        ]
+      },
+      {
+        id: "blind-bid-withdrawal",
+        number: "02",
+        tabLabel: "Blind Bid Withdrawal",
+        source: "Marketplace Ticket #AUC-109 · Stack: FastAPI + SQLAlchemy + Postgres + Redis",
+        title: "Blind Bid Withdrawal (>10m Before Auction Close)",
+        rawTicket:
+          "Allow auction bidders to withdraw their last bid if there are more than 10 minutes left on the clock so fat-finger typos don't require support intervention.",
+        surfaceChips: [
+          "sqlalchemy: Auction, Bid (app/models/auction.py:19)",
+          "sqlalchemy: EscrowHold (app/models/wallet.py:42)",
+          "route: DELETE /v1/auctions/{id}/bids/latest (app/routes/bids.py:55)",
+          "worker: settle_auction_task (app/workers/settlement.py:30)"
+        ],
+        findings: [
+          {
+            id: "MP-001",
+            title: "Clock Skew & Simultaneous Bid Race at the T-10m Cutoff",
+            exploit_class: "concurrency_race",
+            spec_quote: "withdraw their last bid if there are more than 10 minutes left on the clock",
+            monkeys_paw_grant:
+              "Agent compares Python `datetime.now()` (or client timestamp) before running an unlocked `DELETE FROM bids`. A bidder withdraws at 10m00.1s concurrently with another bidder reading `current_high_bid`, corrupting minimum-increment validation.",
+            repo_citations: ["app/models/auction.py:19", "app/routes/bids.py:55"],
+            options: {
+              option_a: {
+                label: "DB `NOW()` Cutoff + `SELECT FOR UPDATE` on Auction Row",
+                design: "Lock parent `auctions` row `FOR UPDATE`, evaluate `auctions.ends_at - CURRENT_TIMESTAMP > INTERVAL '10 minutes'` inside Postgres, and soft-mark `Bid.status = 'WITHDRAWN'`.",
+                ears: [
+                  "WHEN `DELETE /v1/auctions/{auction_id}/bids/latest` is invoked, THE SYSTEM SHALL lock the parent `auctions` row with `SELECT ... FOR UPDATE` and evaluate `ends_at - CURRENT_TIMESTAMP > INTERVAL '10 minutes'` using database server time.",
+                  "IF `ends_at - CURRENT_TIMESTAMP <= INTERVAL '10 minutes'`, THEN THE SYSTEM SHALL reject the withdrawal with HTTP 409 (`WITHDRAWAL_WINDOW_CLOSED`) and preserve the bid."
+                ]
+              },
+              option_b: {
+                label: "Soft-Close Anti-Sniping Extension (+5m) on Late Withdrawal",
+                design: "Serialize via `FOR UPDATE` on `auctions`, enforce DB `CURRENT_TIMESTAMP` > 10m, and extend `auctions.ends_at` by 5 minutes whenever a leading bid is withdrawn within T-30m..T-10m.",
+                ears: [
+                  "WHEN a leading bid is withdrawn between T-30 minutes and T-10 minutes using locked database server time, THE SYSTEM SHALL extend `auctions.ends_at` by 5 minutes and broadcast an `auction.extended` event.",
+                  "IF remaining auction time is 10 minutes or less per Postgres `CURRENT_TIMESTAMP`, THEN THE SYSTEM SHALL reject the request with HTTP 409."
+                ]
+              }
+            },
+            pm_tradeoff:
+              "Option A keeps fixed auction end times predictable for sellers. Option B gives rival bidders 5 extra minutes to react if a high bid disappears near the 10-minute deadline.",
+            defaultSelected: "option_a"
+          },
+          {
+            id: "MP-002",
+            title: "Withdrawn High Bid Orphans Escrow Hold & Cached Leader Price",
+            exploit_class: "orphaned_state",
+            spec_quote: "Allow auction bidders to withdraw their last bid",
+            monkeys_paw_grant:
+              "Agent deletes the `Bid` row but forgets to release the bidder's `EscrowHold` wallet reservation AND leaves `auctions.high_bid_cents` cached in Postgres/Redis pointing at the deleted bid—blocking lower bids and stranding user funds.",
+            repo_citations: ["app/models/wallet.py:42", "app/models/auction.py:34"],
+            options: {
+              option_a: {
+                label: "Atomic Leader Recompute + Synchronous Escrow Release",
+                design: "Within the same Postgres transaction, recompute `high_bid_cents` from the highest remaining `ACTIVE` bid (or `starting_price_cents`), release `EscrowHold`, and invalidate Redis leaderboard key.",
+                ears: [
+                  "WHEN a bid transitions to `WITHDRAWN`, THE SYSTEM SHALL recompute `auctions.high_bid_cents` and `leader_user_id` from remaining `ACTIVE` bids and release the linked `EscrowHold` within the same database transaction.",
+                  "WHEN the database transaction commits, THE SYSTEM SHALL evict and republish the Redis auction price snapshot."
+                ]
+              },
+              option_b: {
+                label: "Append-Only Ledger Reversal + Re-Notify New Leader",
+                design: "Insert compensating `EscrowRelease` ledger entry, recompute `high_bid_cents` atomically, and enqueue an urgent notification to the promoted second-highest bidder.",
+                ears: [
+                  "WHEN a leading bid is marked `WITHDRAWN`, THE SYSTEM SHALL append a compensating `EscrowRelease` ledger entry, promote the highest remaining `ACTIVE` bid, and enqueue a `leader_promoted` notification.",
+                  "IF zero `ACTIVE` bids remain after withdrawal, THEN THE SYSTEM SHALL reset `auctions.high_bid_cents` to `starting_price_cents` and `leader_user_id` to `NULL`."
+                ]
+              }
+            },
+            pm_tradeoff:
+              "Option A immediately frees the user's wallet balance and updates the live price cleanly. Option B also alerts the runner-up that they are now winning (+1 notification template).",
+            defaultSelected: "option_b"
+          },
+          {
+            id: "MP-003",
+            title: "Unlimited Bid-Shielding Manipulation Spam",
+            exploit_class: "blast_radius_scale",
+            spec_quote: "so fat-finger typos don't require support intervention.",
+            monkeys_paw_grant:
+              "Colluding accounts place a sky-high `$50,000` bid to scare away legitimate buyers for 3 days, then click Withdraw at T-10m05s so their accomplice wins for `$12`—repeating endlessly across every auction.",
+            repo_citations: ["app/routes/bids.py:55", "app/workers/settlement.py:30"],
+            options: {
+              option_a: {
+                label: "1 Withdrawal Per Auction + 15-Minute Typo Window",
+                design: "Allow withdrawal only if `CURRENT_TIMESTAMP - bid.created_at <= INTERVAL '15 minutes'` AND `ends_at - CURRENT_TIMESTAMP > INTERVAL '10 minutes'`, capped at 1 withdrawal per user per auction.",
+                ears: [
+                  "WHEN a bidder requests bid withdrawal, THE SYSTEM SHALL verify both `CURRENT_TIMESTAMP - bid.created_at <= INTERVAL '15 minutes'` and zero prior `WITHDRAWN` bids by that user on the target auction.",
+                  "IF the bid is older than 15 minutes or the user already withdrew a bid in that auction, THEN THE SYSTEM SHALL return HTTP 422 (`TYPO_WINDOW_EXPIRED`)."
+                ]
+              },
+              option_b: {
+                label: "1 Withdrawal Per Auction + Cooldown Re-Bid Lock",
+                design: "Allow withdrawing any bid prior to T-10m once per auction, but block that user from placing lower bids and log high-delta withdrawals (`>3x` runner-up) to trust-and-safety review.",
+                ears: [
+                  "WHEN a user withdraws a bid in an auction, THE SYSTEM SHALL cap withdrawals to 1 per `(auction_id, user_id)` and record an immutable `bid_withdrawn` audit event.",
+                  "IF a user attempts a second withdrawal in the same auction, THEN THE SYSTEM SHALL reject the request with HTTP 429 (`WITHDRAWAL_QUOTA_EXCEEDED`)."
+                ]
+              }
+            },
+            pm_tradeoff:
+              "Option A solves genuine fat-finger typos (caught within 15 minutes) while making multi-day bid-shielding scams impossible. Option B allows changing your mind days later but leaves more room for price probing.",
+            defaultSelected: null
+          }
+        ],
+        presetTangents: [
+          {
+            item: "Add proxy auto-bidding ceiling engine like eBay max-bid",
+            category: "phase-2",
+            reason: "Net-new bidding mechanics unrelated to typo withdrawal safety",
+            finding: "MP-002"
+          },
+          {
+            item: "Rewrite polling auction detail page onto WebSockets v2 cluster",
+            category: "infra",
+            reason: "Existing Redis pub/sub handles v1 volume; revisit >50k concurrent bidders",
+            finding: "MP-001"
+          }
+        ]
+      },
+      {
+        id: "webhook-payout-retry",
+        number: "03",
+        tabLabel: "Webhook Payout Retry",
+        source: "Ops Tooling Ticket #FIN-884 · Stack: Express + TypeScript + Zod + SQL + Celery",
+        title: "Ops Batch Action: Retry Failed Vendor Payouts",
+        rawTicket:
+          "Add a 'Retry Failed Payouts' batch action in the Internal Ops portal so ops analysts can select failed vendor payouts after a bank outage and re-send them.",
+        surfaceChips: [
+          "sql: vendor_payouts (migrations/014_payouts.sql:8)",
+          "zod: RetryPayoutsSchema (src/schemas/payout.ts:12)",
+          "route: POST /internal/payouts/retry (src/routes/ops.ts:41)",
+          "auth: authenticate, requireRole (src/middleware/rbac.ts:17)"
+        ],
+        findings: [
+          {
+            id: "MP-001",
+            title: "Retrying Ambiguous Timeouts Issues Duplicate Bank Wires",
+            exploit_class: "partial_mutation",
+            spec_quote: "select failed vendor payouts after a bank outage and re-send them.",
+            monkeys_paw_grant:
+              "Agent generates a fresh UUID on every retry and calls `bankClient.createTransfer()` for any row marked `FAILED`. Payouts that failed due to HTTP read timeouts (where the bank actually settled the first transfer) get wired a second time.",
+            repo_citations: ["migrations/014_payouts.sql:8", "src/routes/ops.ts:41"],
+            options: {
+              option_a: {
+                label: "Pre-Retry Bank Status Reconciliation + Attempt-Scoped Key",
+                design: "Query `bankClient.getTransferByExternalRef(payout.id)` first; only issue a new transfer with deterministic idempotency key `payout:{id}:gen:{retry_generation}` when bank confirms `REJECTED` or `NOT_FOUND`.",
+                ears: [
+                  "WHEN a failed payout is queued for retry, THE SYSTEM SHALL query upstream bank settlement status for the prior idempotency reference before initiating any new transfer.",
+                  "IF upstream reconciliation reports the prior transfer settled or pending, THEN THE SYSTEM SHALL update `vendor_payouts.status` to match upstream state without sending a duplicate transfer."
+                ]
+              },
+              option_b: {
+                label: "Restrict Retries Strictly to Terminal Bank Error Codes",
+                design: "Allow retry only when `failure_code` is in deterministic non-settled set (`INSUFFICIENT_FLOAT`, `RATE_LIMITED`, `ACCOUNT_UNFROZEN`) and quarantine `UPSTREAM_TIMEOUT` rows for manual treasury reconciliation.",
+                ears: [
+                  "WHEN `POST /internal/payouts/retry` evaluates selected payouts, THE SYSTEM SHALL permit automatic retry only for rows with verified non-settled `failure_code` values.",
+                  "IF a payout has `failure_code == 'UPSTREAM_TIMEOUT'`, THEN THE SYSTEM SHALL block automated retry with status `RECONCILIATION_REQUIRED`."
+                ]
+              }
+            },
+            pm_tradeoff:
+              "Option A safely self-heals timeout rows automatically (+1 upstream GET call per payout). Option B skips bank lookups and routes timeout edge cases to Treasury's manual queue.",
+            defaultSelected: "option_a"
+          },
+          {
+            id: "MP-002",
+            title: "Synchronous Batch Loop Over 5,000 Payouts Times Out Gateway",
+            exploit_class: "blast_radius_scale",
+            spec_quote: "Add a 'Retry Failed Payouts' batch action in the Internal Ops portal",
+            monkeys_paw_grant:
+              "Agent loops `for (const id of req.body.payoutIds) { await sendPayout(id) }` inside the Express HTTP handler. Selecting 3,000 payouts after an ACH outage trips the 30s load-balancer timeout mid-loop and triggers bank 429 bans.",
+            repo_citations: ["src/schemas/payout.ts:12", "src/routes/ops.ts:41"],
+            options: {
+              option_a: {
+                label: "Async Batch Job + Rate-Limited Worker Queue (25 RPS)",
+                design: "Atomically transition eligible rows `FAILED -> RETRY_QUEUED`, persist a `payout_retry_batches` job, return `202 Accepted` with `batch_id`, and drain chunks at <=25 RPS.",
+                ears: [
+                  "WHEN `POST /internal/payouts/retry` receives valid payout IDs (capped at 5,000 per batch), THE SYSTEM SHALL atomically mark `FAILED` rows `RETRY_QUEUED` and enqueue a rate-limited background batch returning HTTP 202.",
+                  "WHILE draining a `payout_retry_batches` job, THE SYSTEM SHALL throttle outbound bank transfers to at most 25 requests per second."
+                ]
+              },
+              option_b: {
+                label: "Hard Synchronous Cap of 25 Selected Payouts",
+                design: "Enforce `z.array(z.string().uuid()).min(1).max(25)` in `RetryPayoutsSchema` with `FOR UPDATE SKIP LOCKED` so each HTTP request finishes in <3 seconds.",
+                ears: [
+                  "WHEN `POST /internal/payouts/retry` is called, THE SYSTEM SHALL enforce `1 <= payout_ids.length <= 25` via `RetryPayoutsSchema` and lock rows using `FOR UPDATE SKIP LOCKED`.",
+                  "IF more than 25 payout IDs are submitted, THEN THE SYSTEM SHALL return HTTP 413 (`BATCH_LIMIT_EXCEEDED`)."
+                ]
+              }
+            },
+            pm_tradeoff:
+              "Option A lets Ops clear a 5,000-payout outage backlog in one click with a live progress bar (+1 job status endpoint). Option B ships with zero background UI but limits Ops to 25 rows at a time.",
+            defaultSelected: "option_a"
+          },
+          {
+            id: "MP-003",
+            title: "Read-Only Ops Analysts Can Trigger Unbounded Million-Dollar Batches",
+            exploit_class: "auth_boundary_leak",
+            spec_quote: "so ops analysts can select failed vendor payouts after a bank outage and re-send them.",
+            monkeys_paw_grant:
+              "Agent mounts `authenticate` without role or aggregate dollar ceilings, letting any contractor with `OPS_VIEWER` access trigger `$2M` in outbound bank wires without `TREASURY_APPROVER` sign-off.",
+            repo_citations: ["src/middleware/rbac.ts:17", "src/routes/ops.ts:41"],
+            options: {
+              option_a: {
+                label: "`OPS_OPERATOR` Role + $50k Batch Ceiling Gate",
+                design: "Require `requireRole('OPS_OPERATOR', 'TREASURY_ADMIN')`, block `OPS_OPERATOR` batches whose sum exceeds `$50,000` (requiring `TREASURY_ADMIN`), and write actor + IP to `payout_audit_log`.",
+                ears: [
+                  "WHEN `POST /internal/payouts/retry` is invoked, THE SYSTEM SHALL require role `OPS_OPERATOR` or `TREASURY_ADMIN` and record caller identity in `payout_audit_log`.",
+                  "IF caller role is `OPS_OPERATOR` and aggregate batch total exceeds `5000000` cents ($50,000), THEN THE SYSTEM SHALL reject the request with HTTP 403 (`TREASURY_APPROVAL_REQUIRED`)."
+                ]
+              },
+              option_b: {
+                label: "Two-Person Maker/Checker Approval Queue Above $10k",
+                design: "Allow `OPS_OPERATOR` to stage any retry batch as `PENDING_SECOND_SIGNER`; batches >`$10,000` require a distinct `TREASURY_ADMIN` user ID to execute.",
+                ears: [
+                  "WHEN an `OPS_OPERATOR` submits a retry batch exceeding `1000000` cents ($10,000), THE SYSTEM SHALL persist the batch in `PENDING_SECOND_SIGNER` state without dispatching transfers.",
+                  "WHEN a `TREASURY_ADMIN` with `approver_id != creator_id` approves the staged batch, THE SYSTEM SHALL release the batch for execution."
+                ]
+              }
+            },
+            pm_tradeoff:
+              "Option A lets Ops self-serve routine vendor batches (<$50k) instantly while escalating major outages to Treasury. Option B enforces strict dual sign-off on >$10k batches (+2 days UI work).",
+            defaultSelected: null
+          }
+        ],
+        presetTangents: [
+          {
+            item: "Add multi-currency automated FX spot conversion before vendor ACH retry",
+            category: "phase-2",
+            reason: "All current failed payouts settle in domestic currency; defer to International Expansion",
+            finding: "MP-001"
+          },
+          {
+            item: "Build Slack slash-command bot to approve payout batches from mobile",
+            category: "ux-polish",
+            reason: "Web portal RBAC unblocks Ops v1; evaluate Slack workflow later",
+            finding: "MP-003"
+          }
+        ]
+      }
+    ];
+
+    // Mutable simulator state
+    const state = {
+      activeScenarioIdx: 0,
+      activeFormat: "ears",
+      selections: {}, // scenarioId -> { findingId: 'option_a' | 'option_b' | null }
+      parkedItems: [] // { id: 'PL-001', date: '2026-11-21', category, item, reason, origin, presetKey? }
+    };
+
+    function initState() {
+      SCENARIOS.forEach((sc) => {
+        state.selections[sc.id] = {};
+        sc.findings.forEach((f) => {
+          state.selections[sc.id][f.id] = f.defaultSelected;
+        });
+      });
+      // Seed 1 parked item so PARKING-LOT.md demo is live out of the box
+      parkItem({
+        item: SCENARIOS[0].presetTangents[0].item,
+        category: SCENARIOS[0].presetTangents[0].category,
+        reason: SCENARIOS[0].presetTangents[0].reason,
+        origin: `${SCENARIOS[0].tabLabel} · ${SCENARIOS[0].presetTangents[0].finding}`,
+        presetKey: `${SCENARIOS[0].id}:0`
+      });
+    }
+
+    function currentScenario() {
+      return SCENARIOS[state.activeScenarioIdx];
+    }
+
+    function parkItem({ item, category, reason, origin, presetKey }) {
+      const clean = item.trim();
+      if (clean.length < 4) return;
+      const exists = state.parkedItems.find((p) => p.item.toLowerCase() === clean.toLowerCase());
+      if (exists) return;
+      const nextNum = String(state.parkedItems.length + 1).padStart(3, "0");
+      state.parkedItems.push({
+        id: `PL-${nextNum}`,
+        date: new Date().toISOString().slice(0, 10),
+        category,
+        item: clean,
+        reason: reason || "Deferred during pre-code referee session to keep v1 scope <10 mins.",
+        origin: origin || currentScenario().tabLabel,
+        presetKey: presetKey || null
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function highlightSpecText(raw) {
+      let html = escapeHtml(raw);
+      html = html.replace(/^(#{1,3} .*)$/gm, '<span class="kw-head">$1</span>');
+      html = html.replace(
+        /\b(WHEN|WHILE|IF|THEN|THE SYSTEM SHALL|GIVEN|AND)\b/g,
+        '<span class="kw-ears">$1</span>'
+      );
+      html = html.replace(/(\[UNRESOLVED[^\]]*\])/g, '<span class="kw-warn">$1</span>');
+      return html;
+    }
+
+    function compileOutputText() {
+      if (state.activeFormat === "parking") {
+        const lines = [
+          "# Parking Lot (`PARKING-LOT.md`)",
+          "",
+          "> Captured by **Monkey's Paw Tangent Trap** during pre-code specification refinement so scope locks in under 10 minutes.",
+          "",
+          "| ID | Date | Category | Parked Item | Why Deferred / Revisit Trigger | Origin |",
+          "| :--- | :--- | :--- | :--- | :--- | :--- |"
+        ];
+        state.parkedItems.forEach((p) => {
+          lines.push(`| ${p.id} | ${p.date} | \`${p.category}\` | ${p.item} | ${p.reason} | ${p.origin} |`);
+        });
+        return lines.join("\n") + "\n";
+      }
+
+      const sc = currentScenario();
+      const selMap = state.selections[sc.id];
+      const total = sc.findings.length;
+      const lockedCount = sc.findings.filter((f) => Boolean(selMap[f.id])).length;
+      const statusStr = lockedCount === total ? "LOCKED" : `DRAFT (${lockedCount}/${total} LOCKED)`;
+
+      if (state.activeFormat === "ears") {
+        const lines = [
+          `# Locked Specification (EARS): ${sc.title}`,
+          "",
+          `> **Status:** ${statusStr} · **Mode:** \`brownfield\` · **Resolved Guardrails:** ${lockedCount}/${total}`,
+          "",
+          "## 1. Original Draft Baseline",
+          "",
+          "```text",
+          sc.rawTicket,
+          "```",
+          "",
+          "## 2. Locked EARS Requirements",
+          ""
+        ];
+
+        sc.findings.forEach((f) => {
+          const chosenKey = selMap[f.id];
+          lines.push(`### [${f.id}] ${f.title} (\`${f.exploit_class}\`)`);
+          lines.push("");
+          lines.push(`- **Ambiguous Draft Trigger:** "${f.spec_quote}"`);
+          lines.push(`- **Repo Surface Citations:** ${f.repo_citations.map((c) => `\`${c}\``).join(", ")}`);
+          if (!chosenKey) {
+            lines.push(
+              `- **[UNRESOLVED: ${f.id} — Click Option A or Option B on the Decision Card to lock EARS clauses]**`
+            );
+          } else {
+            const opt = f.options[chosenKey];
+            const tag = chosenKey === "option_a" ? "Option A" : "Option B";
+            lines.push(`- **Locked Engineering Choice — ${tag} (${opt.label}):** ${opt.design}`);
+            lines.push(`- **Product / PM Trade-off:** ${f.pm_tradeoff}`);
+            lines.push("");
+            opt.ears.forEach((clause) => {
+              lines.push(`- **Requirement:** ${clause}`);
+            });
+          }
+          lines.push("");
+        });
+
+        const relevantParked = state.parkedItems.filter((p) => p.origin.includes(sc.tabLabel));
+        if (relevantParked.length > 0) {
+          lines.push("## 3. Out-of-Scope (Parked in `PARKING-LOT.md`)");
+          lines.push("");
+          relevantParked.forEach((p) => {
+            lines.push(`- **${p.id}** (\`${p.category}\`): ${p.item}`);
+          });
+          lines.push("");
+        }
+        return lines.join("\n");
+      }
+
+      if (state.activeFormat === "spec-kit") {
+        const lines = [
+          `# Specification: ${sc.title}`,
+          "",
+          `**Status:** ${statusStr} | **Mode:** \`brownfield\``,
+          "",
+          "## Purpose",
+          "",
+          sc.rawTicket,
+          "",
+          "## Requirements",
+          ""
+        ];
+        sc.findings.forEach((f) => {
+          const chosenKey = selMap[f.id];
+          if (!chosenKey) {
+            lines.push(`- **[UNRESOLVED: ${f.id} (${f.title}) — Select Option A or B]**`);
+          } else {
+            f.options[chosenKey].ears.forEach((clause) => {
+              lines.push(`- **[${f.id}]** ${clause}`);
+            });
+          }
+        });
+        lines.push("", "## Acceptance Criteria", "");
+        sc.findings.forEach((f) => {
+          const chosenKey = selMap[f.id];
+          if (chosenKey) {
+            f.options[chosenKey].ears.forEach((clause) => {
+              lines.push(`- [ ] \`[${f.id}]\` ${clause}`);
+            });
+          }
+        });
+        return lines.join("\n") + "\n";
+      }
+
+      if (state.activeFormat === "openspec") {
+        const lines = [
+          `# Spec Delta: ${sc.title}`,
+          "",
+          "## Purpose",
+          "",
+          sc.rawTicket,
+          "",
+          "## ADDED Requirements",
+          ""
+        ];
+        sc.findings.forEach((f) => {
+          const chosenKey = selMap[f.id];
+          lines.push(`### Requirement ${f.id}: ${f.title}`);
+          lines.push("");
+          if (!chosenKey) {
+            lines.push(`[UNRESOLVED: ${f.id} — Choose Option A or Option B]`);
+            lines.push("");
+          } else {
+            const opt = f.options[chosenKey];
+            opt.ears.forEach((c) => lines.push(c));
+            lines.push("");
+            lines.push(`- **Scenario:** Guard \`${f.exploit_class}\` on "${f.spec_quote}"`);
+            lines.push(`  - **GIVEN** touchpoints ${f.repo_citations.map((c) => `\`${c}\``).join(", ")}`);
+            lines.push(`  - **WHEN** an execution path triggers \`${f.exploit_class}\``);
+            lines.push(`  - **THEN** enforce ${opt.label}: ${opt.design}`);
+            lines.push("");
+          }
+        });
+        return lines.join("\n");
+      }
+
+      // Jira checklist format
+      const lines = [
+        `# [${statusStr}] ${sc.title}`,
+        "",
+        "## Summary",
+        "",
+        sc.rawTicket,
+        "",
+        "## Acceptance Criteria Checklist",
+        ""
+      ];
+      sc.findings.forEach((f) => {
+        const chosenKey = selMap[f.id];
+        if (!chosenKey) {
+          lines.push(`- [ ] **[UNRESOLVED: ${f.id}]** Lock Option A or B for \`${f.exploit_class}\``);
+        } else {
+          const refs = f.repo_citations.map((c) => `\`${c}\``).join(", ");
+          f.options[chosenKey].ears.forEach((c) => {
+            lines.push(`- [ ] **[${f.id}]** ${c} _(Refs: ${refs})_`);
+          });
+        }
+      });
+      return lines.join("\n") + "\n";
+    }
+
+    function render() {
+      const sc = currentScenario();
+      const selMap = state.selections[sc.id];
+
+      // 1. Scenario Tabs
+      const tabsEl = document.getElementById("scenarioTabs");
+      tabsEl.innerHTML = "";
+      SCENARIOS.forEach((item, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "scenario-btn" + (idx === state.activeScenarioIdx ? " active" : "");
+        btn.innerHTML = `<span class="scenario-num">${item.number}</span><span>${escapeHtml(item.tabLabel)}</span>`;
+        btn.onclick = () => {
+          state.activeScenarioIdx = idx;
+          render();
+        };
+        tabsEl.appendChild(btn);
+      });
+
+      // 2. Lock Badge
+      const total = sc.findings.length;
+      const lockedCount = sc.findings.filter((f) => Boolean(selMap[f.id])).length;
+      const badgeEl = document.getElementById("lockStatusBadge");
+      if (lockedCount === total) {
+        badgeEl.className = "lock-badge locked";
+        badgeEl.textContent = `${lockedCount}/${total} SPEC LOCKED`;
+      } else {
+        badgeEl.className = "lock-badge";
+        badgeEl.textContent = `${lockedCount}/${total} CARDS LOCKED`;
+      }
+
+      // 3. Draft Box
+      document.getElementById("ticketSourceLabel").textContent = sc.source;
+      document.getElementById("draftTitle").textContent = sc.title;
+      document.getElementById("draftRawText").textContent = sc.rawTicket;
+
+      const chipsEl = document.getElementById("surfaceChips");
+      chipsEl.innerHTML = sc.surfaceChips
+        .map((c) => `<span class="surface-chip">${escapeHtml(c)}</span>`)
+        .join("");
+
+      // 4. Decision Cards
+      const cardsEl = document.getElementById("cardsContainer");
+      cardsEl.innerHTML = "";
+      sc.findings.forEach((f) => {
+        const chosen = selMap[f.id];
+        const card = document.createElement("article");
+        card.className = "decision-card " + (chosen ? "resolved" : "unresolved");
+        card.innerHTML = `
+          <div class="card-top">
+            <div class="card-id-title">
+              <span class="mp-id">${escapeHtml(f.id)}</span>
+              <h3 class="card-heading">${escapeHtml(f.title)}</h3>
+            </div>
+            <span class="exploit-tag">${escapeHtml(f.exploit_class)}</span>
+          </div>
+          <div class="paw-grant">
+            <strong>Monkey's Paw Grant:</strong> ${escapeHtml(f.monkeys_paw_grant)}
+          </div>
+          <div class="citations-row">
+            ${f.repo_citations.map((c) => `<span class="citation-pill">${escapeHtml(c)}</span>`).join("")}
+          </div>
+          <div class="options-grid">
+            <button type="button" class="opt-btn ${chosen === "option_a" ? "selected" : ""}" data-fid="${f.id}" data-opt="option_a">
+              <div class="opt-header">
+                <span>Option A · ${escapeHtml(f.options.option_a.label)}</span>
+                <span>${chosen === "option_a" ? "LOCKED" : "Select"}</span>
+              </div>
+              <div class="opt-design">${escapeHtml(f.options.option_a.design)}</div>
+            </button>
+            <button type="button" class="opt-btn ${chosen === "option_b" ? "selected" : ""}" data-fid="${f.id}" data-opt="option_b">
+              <div class="opt-header">
+                <span>Option B · ${escapeHtml(f.options.option_b.label)}</span>
+                <span>${chosen === "option_b" ? "LOCKED" : "Select"}</span>
+              </div>
+              <div class="opt-design">${escapeHtml(f.options.option_b.design)}</div>
+            </button>
+          </div>
+          <div class="pm-box">
+            <strong>PM Trade-off (UX / Latency / Scope):</strong>${escapeHtml(f.pm_tradeoff)}
+          </div>
+        `;
+        card.querySelectorAll(".opt-btn").forEach((btn) => {
+          btn.onclick = () => {
+            const fid = btn.getAttribute("data-fid");
+            const opt = btn.getAttribute("data-opt");
+            state.selections[sc.id][fid] = opt;
+            render();
+          };
+        });
+        cardsEl.appendChild(card);
+      });
+
+      // 5. Preset Tangents
+      const presetsEl = document.getElementById("presetTangents");
+      presetsEl.innerHTML = "";
+      sc.presetTangents.forEach((pt, pIdx) => {
+        const key = `${sc.id}:${pIdx}`;
+        const already = state.parkedItems.some((p) => p.presetKey === key || p.item === pt.item);
+        const row = document.createElement("div");
+        row.className = "preset-tangent-row";
+        row.innerHTML = `
+          <span>"<em>${escapeHtml(pt.item)}</em>" <code style="color:var(--text-2);">[${escapeHtml(pt.category)}]</code></span>
+          <button type="button" class="trap-btn" ${already ? "disabled" : ""}>
+            ${already ? "Parked in PARKING-LOT.md" : "Trap -> PARKING-LOT.md"}
+          </button>
+        `;
+        const btn = row.querySelector("button");
+        if (!already) {
+          btn.onclick = () => {
+            parkItem({
+              item: pt.item,
+              category: pt.category,
+              reason: pt.reason,
+              origin: `${sc.tabLabel} · ${pt.finding}`,
+              presetKey: key
+            });
+            render();
+          };
+        }
+        presetsEl.appendChild(row);
+      });
+
+      // 6. Format Tabs & Output
+      document.getElementById("parkCountBadge").textContent = String(state.parkedItems.length);
+      document.querySelectorAll(".fmt-tab").forEach((tab) => {
+        tab.classList.toggle("active", tab.getAttribute("data-fmt") === state.activeFormat);
+      });
+
+      const fileLabel = document.getElementById("outputFilenameLabel");
+      if (state.activeFormat === "parking") {
+        fileLabel.textContent = "Output: PARKING-LOT.md · Sequential deferred scope ledger";
+      } else {
+        fileLabel.textContent = `Output: SPEC.md · Format: ${state.activeFormat.toUpperCase()}`;
+      }
+
+      const compiled = compileOutputText();
+      document.getElementById("compiledOutput").innerHTML = highlightSpecText(compiled);
+    }
+
+    // Wire static controls
+    document.querySelectorAll(".fmt-tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        state.activeFormat = tab.getAttribute("data-fmt");
+        render();
+      });
+    });
+
+    document.getElementById("lockAllBtn").addEventListener("click", () => {
+      const sc = currentScenario();
+      sc.findings.forEach((f) => {
+        if (!state.selections[sc.id][f.id]) {
+          state.selections[sc.id][f.id] = "option_a";
+        }
+      });
+      if (state.activeFormat === "parking") state.activeFormat = "ears";
+      render();
+    });
+
+    document.getElementById("resetScenarioBtn").addEventListener("click", () => {
+      const sc = currentScenario();
+      sc.findings.forEach((f) => {
+        state.selections[sc.id][f.id] = null;
+      });
+      render();
+    });
+
+    document.getElementById("customTangentForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const input = document.getElementById("customTangentInput");
+      const cat = document.getElementById("customTangentCategory").value;
+      if (!input.value.trim()) return;
+      parkItem({
+        item: input.value.trim(),
+        category: cat,
+        reason: "Captured via Referee Simulator Tangent Trap",
+        origin: currentScenario().tabLabel
+      });
+      input.value = "";
+      state.activeFormat = "parking";
+      render();
+    });
+
+    document.getElementById("copyInstallBtn").addEventListener("click", (e) => {
+      navigator.clipboard?.writeText("npx skills add orphik/monkey-paw");
+      const btn = e.currentTarget;
+      const orig = btn.textContent;
+      btn.textContent = "Copied: npx skills add orphik/monkey-paw";
+      setTimeout(() => (btn.textContent = orig), 1600);
+    });
+
+    document.getElementById("copySpecBtn").addEventListener("click", (e) => {
+      const text = compileOutputText();
+      navigator.clipboard?.writeText(text);
+      const btn = e.currentTarget;
+      const orig = btn.textContent;
+      btn.textContent = "Copied!";
+      setTimeout(() => (btn.textContent = orig), 1400);
+    });
+
+    document.getElementById("downloadSpecBtn").addEventListener("click", () => {
+      const text = compileOutputText();
+      const filename = state.activeFormat === "parking" ? "PARKING-LOT.md" : "SPEC.md";
+      const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    initState();
+    render();
+  </script>
+</body>
+</html>

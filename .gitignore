@@ -1,0 +1,30 @@
+# Monkey's Paw ephemeral scratch directory (never commit)
+.monkey-paw/
+
+# Python bytecode & test caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments & JS dependencies
+venv/
+.venv/
+env/
+node_modules/
+
+# Secrets & environment files
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# OS metadata
+.DS_Store
+Thumbs.db
