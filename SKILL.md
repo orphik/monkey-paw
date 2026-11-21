@@ -22,7 +22,7 @@ Run this workflow **before writing application code** to lock an unambiguous spe
 2. **Scratch files** go strictly inside `.monkey-paw/` (for example, `.monkey-paw/surface.json` and `.monkey-paw/findings.json`).
 3. **Final human-facing outputs** write only to `SPEC.md`, `PARKING-LOT.md`, or an explicit `--out` path requested by the user.
 4. **Never read or emit secrets** (`.env*`, `*.pem`, `*.key`, credentials, or tokens).
-5. Resolve `<SKILL_DIR>` below as the directory containing this `SKILL.md` file. Use `python3` (or `python` on Windows environments without a `python3` alias).
+5. Resolve `<SKILL_DIR>` below as the directory containing this `SKILL.md` file. Run scripts with `python3` (on Windows, verify `python --version` first and substitute `python` whenever `python3` points to the Microsoft Store stub).
 
 ---
 

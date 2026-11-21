@@ -339,6 +339,73 @@ type Mutation {
             self.assertTrue(payload["truncated"])
             self.assertEqual(payload["mode"], "brownfield")
 
+    def test_java_spring_and_go_extraction(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            java_dir = root / "src" / "main" / "java" / "com" / "acme"
+            java_dir.mkdir(parents=True)
+            (java_dir / "BidController.java").write_text(
+                """package com.acme;
+
+public sealed interface TechnicalScope permits FixedScope, DiagnosticScope {}
+
+public enum BidTier {
+    STANDARD,
+    PRIORITY
+}
+
+public record SubmitBidRequest(String jobId, long amountCents) {}
+
+@RestController
+@RequestMapping("/api/v1/bids")
+public class BidController {
+    @PreAuthorize("hasRole('CONTRACTOR')")
+    @PostMapping("/{jobId}")
+    public Response submitBid(SubmitBidRequest req) { return null; }
+
+    @Scheduled(fixedDelay = 5000)
+    public void pollJobs() {
+        String sql = "SELECT id FROM agent_jobs FOR UPDATE SKIP LOCKED";
+    }
+}
+""",
+                encoding="utf-8",
+            )
+
+            go_dir = root / "cmd" / "relay"
+            go_dir.mkdir(parents=True)
+            (go_dir / "main.go").write_text(
+                """package main
+
+type OrderIntent struct {
+    MarketID string
+    Contracts int
+}
+
+func register(r Router) {
+    r.Use(RequireAuth)
+    r.Post("/v1/orders", handleOrder)
+}
+""",
+                encoding="utf-8",
+            )
+
+            payload, _ = scan_repository(root)
+            surface = payload["surface"]
+            models = {m["name"] for m in surface["models"]}
+            enums = {e["name"] for e in surface["enums"]}
+            routes = {r["name"] for r in surface["routes"]}
+            auth = {a["name"] for a in surface["auth"]}
+            workers = {w["name"] for w in surface["workers"]}
+
+            self.assertTrue({"TechnicalScope", "SubmitBidRequest", "OrderIntent"}.issubset(models))
+            self.assertIn("BidTier", enums)
+            self.assertIn("POST /api/v1/bids/{jobId}", routes)
+            self.assertIn("POST /v1/orders", routes)
+            self.assertTrue(any("PreAuthorize" in a for a in auth))
+            self.assertIn("RequireAuth", auth)
+            self.assertIn("pollJobs", workers)
+
 
 if __name__ == "__main__":
     unittest.main()

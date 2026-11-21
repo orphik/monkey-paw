@@ -3,9 +3,12 @@
 **A coding agent is a literal-minded genie: give it an underspecified ticket, and it will pass every happy-path test while quietly corrupting production.**  
 **`monkey-paw` runs a deterministic, read-only <10-minute malicious compliance audit before a single line of app code is written.**
 
+[![CI](https://github.com/orphik/monkey-paw/actions/workflows/ci.yml/badge.svg)](https://github.com/orphik/monkey-paw/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](./LICENSE)
 [![Python 3.10+ Stdlib Only](https://img.shields.io/badge/Python-3.10%2B%20stdlib%20only-3776AB.svg)](./scripts/)
 [![Agent Skills Spec](https://img.shields.io/badge/spec-agentskills.io-amber.svg)](./SKILL.md)
+
+**Try it in your browser (zero API key):** **[Live Interactive Simulator ->](https://orphik.github.io/monkey-paw/)** · [Simulator Source (`docs/index.html`)](https://github.com/orphik/monkey-paw/blob/main/docs/index.html)
 
 ---
 
@@ -17,12 +20,25 @@ Most AI coding failures are not syntax bugs—they are **specification loopholes
 
 ---
 
-## Install (`npx skills add`) — Zero Lock-In
+## Install (`npx skills add` or Pure `git`) — Zero Lock-In
 
-Install once into any workspace using the open [`skills`](https://agentskills.io) CLI:
+Install into any workspace using the open [`skills`](https://agentskills.io) CLI:
 
 ```bash
 npx skills add orphik/monkey-paw
+```
+
+**No Node.js / `npx` installed?** Clone directly with `git` (zero npm or pip packages required):
+
+```bash
+# Per-repository install (checked into .agents/skills/ or gitignored)
+git clone https://github.com/orphik/monkey-paw.git .agents/skills/monkey-paw
+
+# Global machine-wide install (pick your agent's global skills folder)
+git clone https://github.com/orphik/monkey-paw.git ~/.gemini/config/skills/monkey-paw   # Antigravity (PowerShell: "$HOME\.gemini\config\skills\monkey-paw")
+git clone https://github.com/orphik/monkey-paw.git ~/.claude/skills/monkey-paw          # Claude Code
+git clone https://github.com/orphik/monkey-paw.git ~/.cursor/skills/monkey-paw          # Cursor
+git clone https://github.com/orphik/monkey-paw.git ~/.codex/skills/monkey-paw           # Codex
 ```
 
 Because `monkey-paw` ships a strict `agentskills.io` root [`SKILL.md`](./SKILL.md), [`AGENTS.md`](./AGENTS.md), zero-dependency Python 3.10+ `stdlib` scripts, and a built-in JSON-RPC 2.0 `stdio` MCP server, it works identically across every major coding agent:

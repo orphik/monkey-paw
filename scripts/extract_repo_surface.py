@@ -989,6 +989,155 @@ def extract_graphql_surface(rel_file: str, text: str, buckets: dict[str, list[di
         buckets["auth"].append(_make_item(f"@{match.group(1)}", "graphql_directive", rel_file, line))
 
 
+_JAVA_CLASS_PREFIX_RE = re.compile(r"@RequestMapping\s*\(\s*(?:value\s*=\s*|path\s*=\s*)?\"([^\"]+)\"")
+_JAVA_ROUTE_RE = re.compile(
+    r"@(GetMapping|PostMapping|PutMapping|PatchMapping|DeleteMapping|RequestMapping)"
+    r"(?:\s*\(\s*(?:(?:value|path)\s*=\s*)?\"([^\"]*)\"[^)]*\)|\s*\(\s*\))?"
+    r"[\s\S]{0,240}?(?:public|protected|private)?\s+[A-Za-z0-9_<>, ?\[\]]+\s+([A-Za-z_]\w*)\s*\("
+)
+_JAVA_RECORD_RE = re.compile(r"\brecord\s+([A-Za-z_]\w*)\s*\(([\s\S]*?)\)\s*(?:implements[^{]+)?\{")
+_JAVA_ENTITY_RE = re.compile(
+    r"@(?:Entity|Table)\b[\s\S]{0,200}?\bclass\s+([A-Za-z_]\w*)"
+)
+_JAVA_SEALED_RE = re.compile(
+    r"\bsealed\s+(?:interface|class)\s+([A-Za-z_]\w*)\s+permits\s+([^{;]+)"
+)
+_JAVA_ENUM_RE = re.compile(r"\benum\s+([A-Za-z_]\w*)\s*(?:implements[^{]+)?\{([\s\S]*?)\}")
+_JAVA_AUTH_RE = re.compile(
+    r"@(PreAuthorize|Secured|RolesAllowed)\s*\(([^)]*)\)|\b(SecurityFilterChain)\b"
+)
+_JAVA_WORKER_RE = re.compile(
+    r"@(Scheduled|KafkaListener|RabbitListener|SqsListener|Async)\b[\s\S]{0,200}?\b([A-Za-z_]\w*)\s*\("
+)
+_SQL_SKIP_LOCKED_RE = re.compile(r"FOR\s+UPDATE\s+SKIP\s+LOCKED", re.IGNORECASE)
+
+
+def extract_java_surface(rel_file: str, text: str, buckets: dict[str, list[dict[str, Any]]]) -> None:
+    """Extract Java / Spring Boot records, JPA entities, sealed types, enums, routes, security guards, and workers."""
+    prefix = ""
+    prefix_match = _JAVA_CLASS_PREFIX_RE.search(text[:2500])
+    if prefix_match and ("@RestController" in text[:2500] or "@Controller" in text[:2500]):
+        prefix = "/" + prefix_match.group(1).strip("/")
+
+    for match in _JAVA_RECORD_RE.finditer(text):
+        name, params = match.group(1), match.group(2)
+        line = text.count("\n", 0, match.start()) + 1
+        fields: list[str] = []
+        for part in params.split(","):
+            cleaned = re.sub(r"@\w+(?:\([^)]*\))?\s*", "", part).strip()
+            tokens = cleaned.split()
+            if len(tokens) >= 2:
+                fields.append(f"{tokens[-1]}:{tokens[-2]}")
+        buckets["models"].append(
+            _make_item(name, "java_record", rel_file, line, f"fields=[{', '.join(fields[:10])}]" if fields else "")
+        )
+
+    for match in _JAVA_ENTITY_RE.finditer(text):
+        line = text.count("\n", 0, match.start()) + 1
+        buckets["models"].append(_make_item(match.group(1), "java_entity", rel_file, line))
+
+    for match in _JAVA_SEALED_RE.finditer(text):
+        name = match.group(1)
+        permits = ", ".join(p.strip() for p in match.group(2).split(",") if p.strip())
+        line = text.count("\n", 0, match.start()) + 1
+        buckets["models"].append(_make_item(name, "java_sealed_type", rel_file, line, f"permits=[{permits}]"))
+
+    for match in _JAVA_ENUM_RE.finditer(text):
+        name, body = match.group(1), match.group(2)
+        head = body.split(";", 1)[0]
+        vals: list[str] = []
+        for raw_ln in head.splitlines():
+            ln = raw_ln.split("//", 1)[0].strip()
+            if not ln:
+                continue
+            for tok in ln.split(","):
+                c = tok.split("(", 1)[0].strip()
+                if re.match(r"^[A-Z][A-Z0-9_]*$", c):
+                    vals.append(c)
+        line = text.count("\n", 0, match.start()) + 1
+        buckets["enums"].append(
+            _make_item(name, "java_enum", rel_file, line, f"values=[{', '.join(vals[:12])}]" if vals else "")
+        )
+
+    verb_map = {
+        "GetMapping": "GET",
+        "PostMapping": "POST",
+        "PutMapping": "PUT",
+        "PatchMapping": "PATCH",
+        "DeleteMapping": "DELETE",
+        "RequestMapping": "REQUEST",
+    }
+    for match in _JAVA_ROUTE_RE.finditer(text):
+        ann, sub_path, handler = match.group(1), match.group(2) or "", match.group(3)
+        if ann == "RequestMapping" and match.start() < 2500 and prefix_match and match.start() == prefix_match.start():
+            continue
+        sub = "/" + sub_path.strip("/") if sub_path.strip("/") else ""
+        full_path = (prefix + sub) or "/"
+        line = text.count("\n", 0, match.start()) + 1
+        buckets["routes"].append(
+            _make_item(f"{verb_map[ann]} {full_path}", "spring_route", rel_file, line, f"handler={handler}")
+        )
+
+    for match in _JAVA_AUTH_RE.finditer(text):
+        line = text.count("\n", 0, match.start()) + 1
+        if match.group(1):
+            expr = match.group(2).strip().strip('"')
+            buckets["auth"].append(_make_item(f"@{match.group(1)}({expr})", "spring_security", rel_file, line))
+        elif match.group(3):
+            buckets["auth"].append(_make_item("SecurityFilterChain", "spring_security", rel_file, line))
+
+    for match in _JAVA_WORKER_RE.finditer(text):
+        ann, fn_name = match.group(1), match.group(2)
+        line = text.count("\n", 0, match.start()) + 1
+        buckets["workers"].append(_make_item(fn_name, f"java_worker:{ann}", rel_file, line))
+
+    for match in _SQL_SKIP_LOCKED_RE.finditer(text):
+        line = text.count("\n", 0, match.start()) + 1
+        buckets["workers"].append(
+            _make_item(Path(rel_file).stem, "sql_queue_poller", rel_file, line, "FOR UPDATE SKIP LOCKED")
+        )
+        break
+
+
+_GO_STRUCT_RE = re.compile(r"^\s*type\s+([A-Za-z_]\w*)\s+struct\s*\{([\s\S]*?)^\s*\}", re.MULTILINE)
+_GO_ROUTE_RE = re.compile(
+    r"\b(?:r|router|mux|g|api|v1|app|e)\.(Get|Post|Put|Patch|Delete|GET|POST|PUT|PATCH|DELETE|HandleFunc)\s*\(\s*\"([^\"]+)\""
+)
+_GO_AUTH_RE = re.compile(r"\b(AuthMiddleware|RequireAuth|JWTMiddleware|RequireRole|AdminOnly)\b")
+
+
+def extract_go_surface(rel_file: str, text: str, buckets: dict[str, list[dict[str, Any]]]) -> None:
+    """Extract Go structs, HTTP router endpoints, and auth middlewares."""
+    for match in _GO_STRUCT_RE.finditer(text):
+        name, body = match.group(1), match.group(2)
+        line = text.count("\n", 0, match.start()) + 1
+        fields: list[str] = []
+        for raw_ln in body.splitlines():
+            ln = raw_ln.split("//", 1)[0].strip()
+            if not ln:
+                continue
+            parts = ln.split()
+            if len(parts) >= 2 and not parts[0].startswith("*"):
+                fields.append(f"{parts[0]}:{parts[1]}")
+        buckets["models"].append(
+            _make_item(name, "go_struct", rel_file, line, f"fields=[{', '.join(fields[:10])}]" if fields else "")
+        )
+
+    for match in _GO_ROUTE_RE.finditer(text):
+        method_raw, route_path = match.group(1), match.group(2)
+        line = text.count("\n", 0, match.start()) + 1
+        label = route_path if " " in route_path.strip() else f"{method_raw.upper()} {route_path}"
+        buckets["routes"].append(_make_item(label, "go_http_route", rel_file, line))
+
+    seen: set[tuple[str, int]] = set()
+    for match in _GO_AUTH_RE.finditer(text):
+        sym = match.group(1)
+        line = text.count("\n", 0, match.start()) + 1
+        if (sym, line) not in seen:
+            seen.add((sym, line))
+            buckets["auth"].append(_make_item(sym, "go_auth_middleware", rel_file, line))
+
+
 # ---------------------------------------------------------------------------
 # Main Repository Scanner & Deterministic Byte-Cap Serializer
 # ---------------------------------------------------------------------------
@@ -1140,6 +1289,10 @@ def scan_repository(repo_path: Path, max_bytes: int = DEFAULT_MAX_OUTPUT_BYTES) 
                 extract_ts_js_surface(f_rel, text, buckets)
             elif ext in {".graphql", ".gql"}:
                 extract_graphql_surface(f_rel, text, buckets)
+            elif ext == ".java":
+                extract_java_surface(f_rel, text, buckets)
+            elif ext == ".go":
+                extract_go_surface(f_rel, text, buckets)
 
     has_surface = stats["scanned_code_files"] > 0 or any(bool(v) for v in buckets.values())
     mode = "brownfield" if has_surface else "greenfield"
