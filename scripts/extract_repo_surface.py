@@ -992,8 +992,8 @@ def extract_graphql_surface(rel_file: str, text: str, buckets: dict[str, list[di
 _JAVA_CLASS_PREFIX_RE = re.compile(r"@RequestMapping\s*\(\s*(?:value\s*=\s*|path\s*=\s*)?\"([^\"]+)\"")
 _JAVA_ROUTE_RE = re.compile(
     r"@(GetMapping|PostMapping|PutMapping|PatchMapping|DeleteMapping|RequestMapping)"
-    r"(?:\s*\(\s*(?:(?:value|path)\s*=\s*)?\"([^\"]*)\"[^)]*\)|\s*\(\s*\))?"
-    r"[\s\S]{0,240}?(?:public|protected|private)?\s+[A-Za-z0-9_<>, ?\[\]]+\s+([A-Za-z_]\w*)\s*\("
+    r"(?:\s*\(\s*(?:(?:value|path)\s*=\s*)?\"([^\"]*)\"[^)]*\))?(?!\s*\(\s*\")"
+    r"[^{;]{0,240}?\b(?:public|protected|private)\s+[A-Za-z0-9_<>, ?\[\].]+\s+([A-Za-z_]\w*)\s*\("
 )
 _JAVA_RECORD_RE = re.compile(r"\brecord\s+([A-Za-z_]\w*)\s*\(([\s\S]*?)\)\s*(?:implements[^{]+)?\{")
 _JAVA_ENTITY_RE = re.compile(
