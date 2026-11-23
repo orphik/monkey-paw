@@ -180,6 +180,16 @@ npx skills add /path/to/monkey-paw
 
 ---
 
+## Upstream Team Governance: Spec Bridge for Jira Cloud & Confluence
+
+`monkey-paw` catches specification loopholes locally inside your repository. If your organization writes requirements upstream in **Confluence** and **Jira Cloud**, see [**Spec Bridge**](https://github.com/orphik/spec-bridge-community) (`100% Runs on Atlassian` — zero external servers, zero data egress):
+
+- Audits Confluence PRDs and 5-level Jira hierarchies (`Portfolio Epic → Capability → Feature → Story → Sub-task`) *before* refinement, dealing paired `@PM` and `@TechLead` Decision Cards while quarantining scope creep.
+- Enforces native Jira Workflow Validators that block `DRIFTED` stories from moving to *In Progress* when linked PRDs change mid-sprint, and serves locked Spec-Kit, OpenSpec, and Rovo MCP contracts directly to your IDE.
+- Includes six synthetic enterprise handoff stress tests in [`spec-bridge-community/stress-tests`](https://github.com/orphik/spec-bridge-community/tree/main/stress-tests).
+
+---
+
 ## License
 
 [MIT](./LICENSE)
