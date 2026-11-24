@@ -488,7 +488,7 @@
     </div>
     <div class="top-actions">
       <span class="pill pill-emerald" id="saveStatePill">Ready</span>
-      <select class="select" id="sessionsSelect" style="width:auto; min-width:190px; padding:0.38rem 0.6rem; font-size:0.78rem;" aria-label="Saved sessions">
+      <select class="select" id="sessionsSelect" style="width:auto; min-width:170px; max-width:240px; text-overflow:ellipsis; padding:0.38rem 0.6rem; font-size:0.78rem;" aria-label="Saved sessions">
         <option value="">Recent Sessions...</option>
       </select>
       <button class="btn" id="newSessionBtn" type="button">+ New</button>
@@ -929,7 +929,9 @@ When a homeowner project receives fewer than 4 blind contractor bids within the 
             method: "PUT",
             body: JSON.stringify(app.session)
           });
-          app.session = res.session;
+          if (res.session?.updated_at && app.session) {
+            app.session.updated_at = res.session.updated_at;
+          }
           setSavePill("All changes saved", "pill-emerald");
           updateStepBadges();
         } catch (err) {
