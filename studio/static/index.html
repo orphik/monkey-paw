@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monkey's Paw Studio — Pre-Code PRD Referee &amp; Backlog Compiler</title>
+  <style>
+    :root {
+      --bg-0: #080a0f;
+      --bg-1: #0f131c;
+      --bg-2: #161c28;
+      --bg-3: #1e2738;
+      --border: #273247;
+      --border-hi: #3c4d6d;
+      --text-0: #f1f5f9;
+      --text-1: #cbd5e1;
+      --text-2: #8b9bb4;
+      --amber: #f59e0b;
+      --amber-bg: rgba(245, 158, 11, 0.12);
+      --crimson: #f43f5e;
+      --crimson-bg: rgba(244, 63, 94, 0.11);
+      --emerald: #10b981;
+      --emerald-bg: rgba(16, 185, 129, 0.13);
+      --cyan: #38bdf8;
+      --cyan-bg: rgba(56, 189, 248, 0.12);
+      --violet: #a78bfa;
+      --violet-bg: rgba(167, 139, 250, 0.13);
+      --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: radial-gradient(circle at 15% 0%, #121929 0%, var(--bg-0) 58%);
+      color: var(--text-0);
+      font-family: var(--sans);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    button, input, select, textarea {
+      font-family: inherit;
+      color: inherit;
+    }
+
+    /* Top Header */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: rgba(8, 10, 15, 0.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1.4rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.85rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #f59e0b 0%, #e11d48 100%);
+      color: #080a0f;
+      font-family: var(--mono);
+      font-weight: 800;
+      display: grid;
+      place-items: center;
+      font-size: 0.92rem;
+    }
+
+    .brand-name {
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .brand-tag {
+      font-size: 0.76rem;
+      color: var(--text-2);
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      color: var(--text-1);
+      padding: 0.44rem 0.8rem;
+      border-radius: 7px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.14s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .btn:hover:not(:disabled) {
+      border-color: var(--border-hi);
+      background: var(--bg-3);
+      color: var(--text-0);
+    }
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      border-color: #f59e0b;
+      color: #090b10;
+      font-weight: 700;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      color: #090b10;
+    }
+
+    .btn-emerald {
+      background: var(--emerald-bg);
+      border-color: var(--emerald);
+      color: #34d399;
+    }
+    .btn-emerald:hover:not(:disabled) {
+      background: rgba(16, 185, 129, 0.24);
+      color: #6ee7b7;
+    }
+
+    .btn-danger {
+      background: var(--crimson-bg);
+      border-color: rgba(244, 63, 94, 0.4);
+      color: #fda4af;
+    }
+
+    .btn-sm {
+      padding: 0.25rem 0.55rem;
+      font-size: 0.73rem;
+      font-family: var(--mono);
+    }
+
+    .pill {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      padding: 0.24rem 0.58rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--bg-1);
+      color: var(--text-1);
+    }
+    .pill-emerald { border-color: rgba(16, 185, 129, 0.45); background: var(--emerald-bg); color: #34d399; }
+    .pill-amber { border-color: rgba(245, 158, 11, 0.45); background: var(--amber-bg); color: #fbbf24; }
+    .pill-cyan { border-color: rgba(56, 189, 248, 0.45); background: var(--cyan-bg); color: #7dd3fc; }
+
+    /* Stepper Navigation */
+    .stepper {
+      max-width: 1440px;
+      margin: 1rem auto 0;
+      padding: 0 1.4rem;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.65rem;
+    }
+
+    @media (max-width: 860px) {
+      .stepper { grid-template-columns: 1fr 1fr; }
+    }
+
+    .step-tab {
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 0.68rem 0.9rem;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      transition: all 0.15s ease;
+    }
+    .step-tab:hover { border-color: var(--border-hi); background: var(--bg-2); }
+    .step-tab.active {
+      border-color: var(--amber);
+      background: var(--amber-bg);
+    }
+    .step-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      background: var(--bg-3);
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      font-weight: 700;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+    .step-tab.active .step-num {
+      background: var(--amber);
+      color: #080a0f;
+    }
+    .step-label { font-size: 0.84rem; font-weight: 700; }
+    .step-sub { font-size: 0.72rem; color: var(--text-2); }
+
+    /* Main Container */
+    .container {
+      max-width: 1440px;
+      margin: 1rem auto 3rem;
+      padding: 0 1.4rem;
+    }
+
+    .banner {
+      padding: 0.7rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: 0.83rem;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    .banner.error {
+      display: flex;
+      background: var(--crimson-bg);
+      border: 1px solid var(--crimson);
+      color: #fecdd3;
+    }
+    .banner.info {
+      display: flex;
+      background: var(--cyan-bg);
+      border: 1px solid var(--cyan);
+      color: #bae6fd;
+    }
+
+    .card {
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.2rem;
+      margin-bottom: 1.1rem;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.9rem;
+    }
+
+    .card-title {
+      font-size: 0.96rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 1.1rem;
+    }
+    @media (max-width: 980px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    .field {
+      margin-bottom: 0.85rem;
+    }
+    .field label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-1);
+      margin-bottom: 0.32rem;
+    }
+    .input, .select, .textarea {
+      width: 100%;
+      background: var(--bg-0);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.84rem;
+      color: var(--text-0);
+    }
+    .input:focus, .select:focus, .textarea:focus {
+      outline: none;
+      border-color: var(--cyan);
+    }
+    .textarea {
+      min-height: 230px;
+      font-family: var(--mono);
+      font-size: 0.81rem;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    /* Decision Cards */
+    .decision-card {
+      background: var(--bg-0);
+      border: 1px solid var(--border-hi);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+      margin-bottom: 0.95rem;
+    }
+    .decision-card.locked { border-color: rgba(16, 185, 129, 0.55); }
+
+    .options-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65rem;
+      margin: 0.75rem 0;
+    }
+    @media (max-width: 760px) {
+      .options-row { grid-template-columns: 1fr; }
+    }
+
+    .opt-card {
+      text-align: left;
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+    .opt-card:hover { border-color: var(--cyan); }
+    .opt-card.selected {
+      background: var(--emerald-bg);
+      border-color: var(--emerald);
+    }
+
+    .pm-callout {
+      background: var(--violet-bg);
+      border: 1px solid rgba(167, 139, 250, 0.3);
+      border-radius: 7px;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.8rem;
+      color: #ddd6fe;
+    }
+
+    /* Editable Backlog Hierarchy Tree */
+    .tree-node {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg-0);
+      padding: 0.85rem 0.95rem;
+      margin-bottom: 0.75rem;
+    }
+    .tree-node.level-epic { border-left: 4px solid var(--amber); }
+    .tree-node.level-capability { border-left: 4px solid var(--violet); }
+    .tree-node.level-feature { border-left: 4px solid var(--cyan); }
+    .tree-node.level-story { border-left: 4px solid var(--emerald); background: rgba(15, 19, 28, 0.75); }
+
+    .node-children {
+      margin-top: 0.75rem;
+      padding-left: 1.15rem;
+      border-left: 1px dashed var(--border-hi);
+    }
+
+    .node-top-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.55rem;
+    }
+
+    .lvl-badge {
+      font-family: var(--mono);
+      font-size: 0.69rem;
+      font-weight: 800;
+      padding: 0.15rem 0.48rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .lvl-epic { background: var(--amber-bg); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .lvl-capability { background: var(--violet-bg); color: #c4b5fd; border: 1px solid rgba(167, 139, 250, 0.4); }
+    .lvl-feature { background: var(--cyan-bg); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.4); }
+    .lvl-story { background: var(--emerald-bg); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4); }
+
+    .node-title-input {
+      flex: 1;
+      min-width: 220px;
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.36rem 0.6rem;
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
+    .node-est-input {
+      width: 74px;
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.36rem 0.5rem;
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      text-align: center;
+    }
+
+    .ac-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      margin-top: 0.45rem;
+    }
+    .ac-row {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .ac-input {
+      flex: 1;
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 0.32rem 0.55rem;
+      font-family: var(--mono);
+      font-size: 0.76rem;
+    }
+
+    /* Export Preview */
+    .export-pre {
+      background: #06080c;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      line-height: 1.55;
+      max-height: 64vh;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* Modals */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+      z-index: 80;
+      display: none;
+      place-items: center;
+      padding: 1rem;
+    }
+    .modal-backdrop.open { display: grid; }
+    .modal {
+      background: var(--bg-1);
+      border: 1px solid var(--border-hi);
+      border-radius: 12px;
+      max-width: 540px;
+      width: 100%;
+      padding: 1.25rem;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-logo">MP</div>
+      <div>
+        <div class="brand-name">Monkey's Paw Studio</div>
+        <div class="brand-tag">PRD Referee · GitHub Repo Scanner · Editable Agile Backlog Compiler</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span class="pill pill-emerald" id="saveStatePill">Ready</span>
+      <select class="select" id="sessionsSelect" style="width:auto; min-width:190px; padding:0.38rem 0.6rem; font-size:0.78rem;" aria-label="Saved sessions">
+        <option value="">Recent Sessions...</option>
+      </select>
+      <button class="btn" id="newSessionBtn" type="button">+ New</button>
+      <button class="btn" id="shareLinkBtn" type="button">Share Link</button>
+      <label class="btn" style="cursor:pointer;">
+        Import JSON
+        <input type="file" id="importJsonInput" accept=".json" style="display:none;" />
+      </label>
+      <button class="btn btn-emerald" id="setupEnvBtn" type="button">Setup Env Vars</button>
+      <button class="btn" id="providerSettingsBtn" type="button">AI Engine</button>
+    </div>
+  </header>
+
+  <nav class="stepper" aria-label="Workflow stages">
+    <button class="step-tab active" data-step="1" type="button">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-label">Ingest PRD &amp; Repo</div>
+        <div class="step-sub">Draft + GitHub or Greenfield</div>
+      </div>
+    </button>
+    <button class="step-tab" data-step="2" type="button">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-label">Monkey's Paw Cards</div>
+        <div class="step-sub" id="step2Sub">Lock A/B + Parking Lot</div>
+      </div>
+    </button>
+    <button class="step-tab" data-step="3" type="button">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-label">Edit Backlog Tree</div>
+        <div class="step-sub" id="step3Sub">Epics / Capabilities / Stories</div>
+      </div>
+    </button>
+    <button class="step-tab" data-step="4" type="button">
+      <div class="step-num">4</div>
+      <div>
+        <div class="step-label">Export &amp; Sync</div>
+        <div class="step-sub">Jira CSV · EARS · Spec-Kit</div>
+      </div>
+    </button>
+  </nav>
+
+  <main class="container">
+    <div class="banner" id="statusBanner">
+      <span id="statusBannerText"></span>
+      <button class="btn btn-sm" type="button" onclick="hideBanner()">Dismiss</button>
+    </div>
+
+    <!-- STEP 1: INGEST PRD & REPO -->
+    <section id="stepPanel1">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">1A. PRD, Ticket, or Draft Acceptance Criteria</div>
+            <div style="display:flex; gap:0.35rem; flex-wrap:wrap;">
+              <button class="btn btn-sm" type="button" onclick="loadSamplePrd(0)">Sample: Billing Pause</button>
+              <button class="btn btn-sm" type="button" onclick="loadSamplePrd(1)">Sample: Marketplace Escrow</button>
+              <label class="btn btn-sm" style="cursor:pointer;">
+                Upload .md/.txt
+                <input type="file" id="uploadPrdFile" accept=".md,.txt,.markdown" style="display:none;" />
+              </label>
+            </div>
+          </div>
+          <div class="field">
+            <label for="prdTitleInput">Initiative / PRD Title (optional — inferred automatically if blank)</label>
+            <input class="input" id="prdTitleInput" placeholder="e.g., Self-Serve Subscription Pause &amp; Automated Dunning" />
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label for="prdTextInput">Paste PRD, Feature Spec, or User Story Acceptance Criteria</label>
+            <textarea class="textarea" id="prdTextInput" placeholder="Paste your draft PRD, Slack/Jira ticket, or acceptance criteria here..."></textarea>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">1B. Codebase Context &amp; Hierarchy</div>
+            <span class="pill pill-cyan" id="activeProviderBadge">Engine: Auto</span>
+          </div>
+
+          <div class="field">
+            <label for="sourceTypeSelect">Repository Surface Mode</label>
+            <select class="select" id="sourceTypeSelect">
+              <option value="greenfield">Greenfield — No Repository Yet (Pure PRD Mode)</option>
+              <option value="github_url">GitHub Repository URL (Public or Private Shallow Scan)</option>
+              <option value="local_path" id="localPathOption">Local Repository Folder (Localhost Only)</option>
+            </select>
+          </div>
+
+          <div id="githubFieldsWrap" class="hidden">
+            <div class="field">
+              <label for="repoTargetInput" id="repoTargetLabel">GitHub Repository (`https://github.com/owner/repo` or `owner/repo`)</label>
+              <input class="input" id="repoTargetInput" placeholder="https://github.com/orphik/monkey-paw" />
+            </div>
+            <div class="field" id="branchFieldWrap">
+              <label for="repoBranchInput">Branch / Tag (optional — defaults to default branch)</label>
+              <input class="input" id="repoBranchInput" placeholder="main" />
+            </div>
+            <div class="field" id="ghTokenFieldWrap">
+              <label for="ghTokenInput">Private Repo GitHub PAT (optional — session-only, never stored in DB)</label>
+              <input class="input" type="password" id="ghTokenInput" placeholder="ghp_... (leave blank for public repos)" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="hierarchyPresetSelect">Target Agile Work Breakdown Hierarchy</label>
+            <select class="select" id="hierarchyPresetSelect">
+              <option value="enterprise_4tier">Enterprise 4-Tier: Epic -&gt; Capability -&gt; Feature -&gt; User Story</option>
+              <option value="capability_first">Capability-First: Capability -&gt; Epic -&gt; Feature -&gt; User Story</option>
+              <option value="agile_3tier">Agile 3-Tier: Epic -&gt; Feature -&gt; User Story</option>
+            </select>
+          </div>
+
+          <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:8px; padding:0.75rem; font-size:0.79rem; color:var(--text-2); margin-bottom:1rem;">
+            <strong style="color:var(--text-1);">Read-Only &amp; Secret-Zero Guarantee:</strong>
+            GitHub clones use shallow <code>--depth 1</code> temporary directories that are deleted immediately after surface extraction. <code>.env*</code>, keys, and tokens are blocked pre-open.
+          </div>
+
+          <button class="btn btn-primary" id="runAnalyzeBtn" type="button" style="width:100%; justify-content:center; padding:0.7rem;">
+            Run Monkey's Paw Analysis -&gt;
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 2: MONKEY'S PAW REFEREE CARDS & TANGENT TRAP -->
+    <section id="stepPanel2" class="hidden">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title" id="refereeHeaderTitle">2. Bilingual Decision Cards</div>
+            <div style="font-size:0.79rem; color:var(--text-2);" id="surfaceSummaryLine"></div>
+          </div>
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <span class="pill pill-amber" id="cardsLockCounter">0/0 Locked</span>
+            <button class="btn btn-emerald" id="generateBacklogBtn" type="button">
+              Generate Editable Work Breakdown -&gt;
+            </button>
+          </div>
+        </div>
+        <div id="decisionCardsMount"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Tangent Trap -&gt; PARKING-LOT.md</div>
+          <span class="pill" id="parkedCountPill">0 Parked</span>
+        </div>
+        <form id="parkTangentForm" style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.75rem;">
+          <input class="input" id="parkItemInput" style="flex:2; min-width:220px;" placeholder="Park off-scope idea or Phase-2 feature (e.g., 'Build analytics export dashboard')..." />
+          <select class="select" id="parkCatSelect" style="width:auto;">
+            <option value="phase-2">phase-2</option>
+            <option value="tech-debt">tech-debt</option>
+            <option value="ux-polish">ux-polish</option>
+            <option value="infra">infra</option>
+            <option value="open-question">open-question</option>
+          </select>
+          <input class="input" id="parkReasonInput" style="flex:1; min-width:180px;" placeholder="Why deferred / revisit trigger..." />
+          <button class="btn" type="submit">+ Park Tangent</button>
+        </form>
+        <div id="parkedListMount" style="font-size:0.81rem; color:var(--text-1);"></div>
+      </div>
+    </section>
+
+    <!-- STEP 3: INLINE-EDITABLE EPIC / CAPABILITY / FEATURE / USER STORY EDITOR -->
+    <section id="stepPanel3" class="hidden">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">3. Editable Work Breakdown Hierarchy</div>
+            <div style="font-size:0.79rem; color:var(--text-2);">
+              Edit any title, story points, user story prose, touchpoints, or EARS acceptance criteria inline. Changes sync automatically.
+            </div>
+          </div>
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+            <select class="select" id="editorPresetSelect" style="width:auto; font-size:0.78rem;">
+              <option value="enterprise_4tier">Epic -&gt; Capability -&gt; Feature -&gt; Story</option>
+              <option value="capability_first">Capability -&gt; Epic -&gt; Feature -&gt; Story</option>
+              <option value="agile_3tier">Epic -&gt; Feature -&gt; Story</option>
+            </select>
+            <button class="btn" id="addRootNodeBtn" type="button">+ Add Top-Level Item</button>
+            <button class="btn" id="regenBacklogBtn" type="button">Regenerate from Cards</button>
+            <button class="btn btn-primary" type="button" onclick="setStep(4)">Export &amp; Jira CSV -&gt;</button>
+          </div>
+        </div>
+
+        <div id="backlogTreeMount"></div>
+      </div>
+    </section>
+
+    <!-- STEP 4: MULTI-FORMAT EXPORT -->
+    <section id="stepPanel4" class="hidden">
+      <div class="card">
+        <div class="card-header">
+          <div style="display:flex; gap:0.4rem; flex-wrap:wrap;" id="exportFormatTabs">
+            <button class="btn btn-sm btn-emerald" data-efmt="jira-csv" type="button">Jira CSV (.csv)</button>
+            <button class="btn btn-sm" data-efmt="backlog-md" type="button">BACKLOG.md</button>
+            <button class="btn btn-sm" data-efmt="ears" type="button">SPEC.md (EARS)</button>
+            <button class="btn btn-sm" data-efmt="spec-kit" type="button">Spec-Kit</button>
+            <button class="btn btn-sm" data-efmt="openspec" type="button">OpenSpec</button>
+            <button class="btn btn-sm" data-efmt="jira" type="button">Jira Checklist</button>
+            <button class="btn btn-sm" data-efmt="parking-md" type="button">PARKING-LOT.md</button>
+            <button class="btn btn-sm" data-efmt="bundle-json" type="button">Session JSON</button>
+          </div>
+          <div style="display:flex; gap:0.45rem;">
+            <button class="btn" id="copyExportBtn" type="button">Copy to Clipboard</button>
+            <button class="btn btn-primary" id="downloadExportBtn" type="button">Download File</button>
+          </div>
+        </div>
+        <div style="font-family:var(--mono); font-size:0.75rem; color:var(--text-2); margin-bottom:0.55rem;" id="exportMetaLabel"></div>
+        <pre class="export-pre" id="exportPreviewPre">Run an analysis and generate a backlog first to preview exports.</pre>
+      </div>
+    </section>
+  </main>
+
+  <!-- SETUP ENV VARS MODAL (LOCALHOST .ENV WRITER + RAILWAY STATUS VIEWER) -->
+  <div class="modal-backdrop" id="envModal">
+    <div class="modal" style="max-width:680px; max-height:88vh; overflow-y:auto;">
+      <div class="card-header">
+        <div class="card-title">Setup Environment Variables</div>
+        <button class="btn btn-sm" type="button" onclick="closeEnvModal()">Close</button>
+      </div>
+      <div id="envModalModeBanner" style="font-size:0.8rem; color:var(--text-1); background:var(--bg-0); border:1px solid var(--border); border-radius:7px; padding:0.65rem 0.8rem; margin-bottom:0.85rem;"></div>
+      <div id="envVarsFieldsMount"></div>
+      <div id="envSaveFooter" style="margin-top:0.9rem;">
+        <button class="btn btn-primary" id="saveEnvBtn" type="button" style="width:100%; justify-content:center;">
+          Save to Local .env &amp; Apply Immediately
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROVIDER / BYOK MODAL -->
+  <div class="modal-backdrop" id="providerModal">
+    <div class="modal">
+      <div class="card-header">
+        <div class="card-title">AI Model &amp; Key Settings</div>
+        <button class="btn btn-sm" type="button" onclick="closeProviderModal()">Close</button>
+      </div>
+      <div class="field">
+        <label for="provSelect">Provider</label>
+        <select class="select" id="provSelect">
+          <option value="auto">Auto (Server Env Key if present, else Deterministic Sandbox)</option>
+          <option value="demo">Deterministic Sandbox (Zero API Key — Instant Offline Mode)</option>
+          <option value="gemini">Google Gemini (gemini-2.5-flash / pro)</option>
+          <option value="anthropic">Anthropic Claude (claude-sonnet-4-20250514)</option>
+          <option value="openai">OpenAI (gpt-4.1-mini / gpt-4o)</option>
+          <option value="openai_compatible">OpenAI-Compatible (Ollama / OpenRouter / vLLM)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="provModelInput">Model Override (optional)</label>
+        <input class="input" id="provModelInput" placeholder="Leave blank for provider default" />
+      </div>
+      <div class="field">
+        <label for="provKeyInput">API Key (optional if configured on server — stored in browser sessionStorage only)</label>
+        <input class="input" type="password" id="provKeyInput" placeholder="AIza... / sk-ant-... / sk-..." />
+      </div>
+      <div class="field">
+        <label for="provBaseUrlInput">Custom Base URL (only for OpenAI-Compatible / Ollama)</label>
+        <input class="input" id="provBaseUrlInput" placeholder="http://localhost:11434/v1" />
+      </div>
+      <div style="font-size:0.76rem; color:var(--text-2); margin-bottom:0.9rem;" id="serverKeyStatusNote"></div>
+      <button class="btn btn-primary" type="button" style="width:100%; justify-content:center;" onclick="saveProviderModal()">Save Provider Settings</button>
+    </div>
+  </div>
+
+  <!-- PASSCODE GATE MODAL -->
+  <div class="modal-backdrop" id="passcodeModal">
+    <div class="modal">
+      <div class="card-title" style="margin-bottom:0.5rem;">Unlock Monkey's Paw Studio</div>
+      <p style="font-size:0.82rem; color:var(--text-2); margin-bottom:0.9rem;">
+        This Studio deployment is protected by <code>STUDIO_PASSCODE</code>.
+      </p>
+      <form id="passcodeForm">
+        <div class="field">
+          <label for="passcodeInput">Access Passcode</label>
+          <input class="input" type="password" id="passcodeInput" required autofocus />
+        </div>
+        <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">Unlock Studio</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const SAMPLE_PRDS = [
+      {
+        title: "Self-Serve Subscription Pause & Automated Dunning",
+        text: `# PRD: Self-Serve Subscription Pause (Up to 90 Days)
+
+## Goal
+Reduce voluntary SaaS churn by allowing workspace billing owners to pause their monthly or annual subscription for 30, 60, or 90 days instead of canceling.
+
+## Draft Acceptance Criteria
+1. Billing Settings page shows a "Pause Subscription" button allowing up to 90 days pause.
+2. While paused, customers are not billed by Stripe, and their historical reports remain viewable.
+3. Scheduled background data syncs and API keys should follow paused workspace rules.
+4. At the end of the pause period, automatically resume the subscription and charge the card on file.`
+      },
+      {
+        title: "Marketplace Bidding Extension & Contractor SMS Invites",
+        text: `# PRD: Homeowner 48-Hour Bid Extension & Direct Contractor Invite
+
+## Goal
+When a homeowner project receives fewer than 4 blind contractor bids within the initial 24-hour window, let the homeowner extend bidding by 48 hours and invite a trusted local contractor via SMS.
+
+## Draft Acceptance Criteria
+1. Vault displays "Extend Bidding 48h" when submitted_bids < 4, keeping the $49 Stripe guarantee hold active.
+2. Homeowner can enter a contractor phone number to send an SMS invite link to submit a blind bid.
+3. Enforce maximum 4 total blind bids per project and statutory SMS opt-in compliance.`
+      }
+    ];
+
+    const PRESET_LEVELS = {
+      enterprise_4tier: ["epic", "capability", "feature", "story"],
+      capability_first: ["capability", "epic", "feature", "story"],
+      agile_3tier: ["epic", "feature", "story"]
+    };
+
+    const app = {
+      step: 1,
+      config: null,
+      passcode: sessionStorage.getItem("mp_studio_passcode") || "",
+      providerCfg: JSON.parse(sessionStorage.getItem("mp_provider_cfg") || '{"provider":"auto","model":"","api_key":"","base_url":""}'),
+      session: null,
+      activeExportFmt: "jira-csv",
+      activeExportData: null,
+      saveTimer: null
+    };
+
+    function showBanner(msg, kind = "error") {
+      const el = document.getElementById("statusBanner");
+      el.className = "banner " + kind;
+      document.getElementById("statusBannerText").textContent = msg;
+    }
+    function hideBanner() {
+      document.getElementById("statusBanner").className = "banner";
+    }
+
+    function setSavePill(text, cls = "pill-emerald") {
+      const p = document.getElementById("saveStatePill");
+      p.className = "pill " + cls;
+      p.textContent = text;
+    }
+
+    async function apiFetch(path, options = {}) {
+      const headers = Object.assign({ "Content-Type": "application/json" }, options.headers || {});
+      if (app.passcode) headers["X-Studio-Passcode"] = app.passcode;
+      const resp = await fetch(path, Object.assign({}, options, { headers }));
+      const data = await resp.json().catch(() => ({}));
+      if (resp.status === 401 && data.passcode_required) {
+        document.getElementById("passcodeModal").classList.add("open");
+        throw new Error("Passcode required.");
+      }
+      if (!resp.ok) {
+        throw new Error(data.error || `Request failed (${resp.status})`);
+      }
+      return data;
+    }
+
+    function esc(s) {
+      return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function setStep(n) {
+      app.step = n;
+      document.querySelectorAll(".step-tab").forEach((b) => {
+        b.classList.toggle("active", Number(b.getAttribute("data-step")) === n);
+      });
+      [1, 2, 3, 4].forEach((idx) => {
+        document.getElementById(`stepPanel${idx}`).classList.toggle("hidden", idx !== n);
+      });
+      if (n === 4 && app.session) {
+        refreshExportPreview();
+      }
+    }
+
+    function loadSamplePrd(idx) {
+      const s = SAMPLE_PRDS[idx];
+      document.getElementById("prdTitleInput").value = s.title;
+      document.getElementById("prdTextInput").value = s.text;
+    }
+
+    function updateSourceVisibility() {
+      const kind = document.getElementById("sourceTypeSelect").value;
+      const wrap = document.getElementById("githubFieldsWrap");
+      wrap.classList.toggle("hidden", kind === "greenfield");
+      if (kind === "local_path") {
+        document.getElementById("repoTargetLabel").textContent = "Local Repository Folder Path";
+        document.getElementById("repoTargetInput").placeholder = "C:\\monkey-paw or /path/to/repo";
+        document.getElementById("branchFieldWrap").classList.add("hidden");
+        document.getElementById("ghTokenFieldWrap").classList.add("hidden");
+      } else if (kind === "github_url") {
+        document.getElementById("repoTargetLabel").textContent = "GitHub Repository (https://github.com/owner/repo or owner/repo)";
+        document.getElementById("repoTargetInput").placeholder = "https://github.com/orphik/monkey-paw";
+        document.getElementById("branchFieldWrap").classList.remove("hidden");
+        document.getElementById("ghTokenFieldWrap").classList.remove("hidden");
+      }
+    }
+
+    async function refreshSessionsDropdown() {
+      try {
+        const data = await apiFetch("/api/sessions");
+        const sel = document.getElementById("sessionsSelect");
+        const curId = app.session?.id || "";
+        sel.innerHTML = '<option value="">Recent Sessions...</option>';
+        (data.sessions || []).forEach((s) => {
+          const opt = document.createElement("option");
+          opt.value = s.id;
+          opt.textContent = `${s.title} (${s.mode})`;
+          if (s.id === curId) opt.selected = true;
+          sel.appendChild(opt);
+        });
+      } catch (_) {}
+    }
+
+    function persistLocalBackup() {
+      if (app.session) {
+        try {
+          localStorage.setItem("mp_studio_last_session", JSON.stringify(app.session));
+        } catch (_) {}
+      }
+    }
+
+    function scheduleAutoSave() {
+      if (!app.session || !app.session.id) return;
+      persistLocalBackup();
+      setSavePill("Saving...", "pill-amber");
+      clearTimeout(app.saveTimer);
+      app.saveTimer = setTimeout(async () => {
+        try {
+          const res = await apiFetch(`/api/sessions/${app.session.id}`, {
+            method: "PUT",
+            body: JSON.stringify(app.session)
+          });
+          app.session = res.session;
+          setSavePill("All changes saved", "pill-emerald");
+          updateStepBadges();
+        } catch (err) {
+          setSavePill("Offline backup only", "pill-amber");
+        }
+      }, 450);
+    }
+
+    function updateStepBadges() {
+      if (!app.session) return;
+      const findings = app.session.findings_doc?.findings || [];
+      const locked = findings.filter((f) => f.resolution?.selected).length;
+      document.getElementById("step2Sub").textContent = `${locked}/${findings.length} Cards Locked`;
+      const flatCount = countTreeNodes(app.session.backlog_tree || []);
+      document.getElementById("step3Sub").textContent = flatCount ? `${flatCount} Editable Items` : "Epics / Capabilities / Stories";
+    }
+
+    function countTreeNodes(nodes) {
+      let c = 0;
+      (nodes || []).forEach((n) => {
+        c += 1 + countTreeNodes(n.children || []);
+      });
+      return c;
+    }
+
+    function loadSessionIntoUi(sess) {
+      app.session = sess;
+      persistLocalBackup();
+      if (sess.id) {
+        history.replaceState(null, "", `/s/${sess.id}`);
+      }
+      document.getElementById("prdTitleInput").value = sess.title || "";
+      document.getElementById("prdTextInput").value = sess.prd_text || "";
+      document.getElementById("sourceTypeSelect").value = sess.source_type || "greenfield";
+      document.getElementById("repoTargetInput").value = sess.repo_target || "";
+      document.getElementById("repoBranchInput").value = sess.branch || "";
+      document.getElementById("hierarchyPresetSelect").value = sess.hierarchy_preset || "enterprise_4tier";
+      document.getElementById("editorPresetSelect").value = sess.hierarchy_preset || "enterprise_4tier";
+      updateSourceVisibility();
+      renderStep2();
+      renderStep3();
+      updateStepBadges();
+      refreshSessionsDropdown();
+    }
+
+    // ------------------------------------------------------------------
+    // STEP 2 RENDERER (DECISION CARDS & PARKING LOT)
+    // ------------------------------------------------------------------
+
+    function renderStep2() {
+      if (!app.session) return;
+      const sess = app.session;
+      const findings = sess.findings_doc?.findings || [];
+      document.getElementById("refereeHeaderTitle").textContent = `2. Bilingual Decision Cards — ${sess.title}`;
+
+      const stats = sess.surface_summary?.stats?.extracted_counts || {};
+      document.getElementById("surfaceSummaryLine").textContent =
+        `Repo: ${sess.repo_label || sess.mode} · Engine: ${sess.engine_used || "demo"} · ` +
+        `Models: ${stats.models || 0}, Routes: ${stats.routes || 0}, Enums: ${stats.enums || 0}, Auth: ${stats.auth || 0}, Workers: ${stats.workers || 0}`;
+
+      const lockedCount = findings.filter((f) => f.resolution?.selected).length;
+      const lockBadge = document.getElementById("cardsLockCounter");
+      lockBadge.textContent = `${lockedCount}/${findings.length} Locked`;
+      lockBadge.className = lockedCount === findings.length ? "pill pill-emerald" : "pill pill-amber";
+
+      const mount = document.getElementById("decisionCardsMount");
+      mount.innerHTML = "";
+
+      findings.forEach((f, idx) => {
+        const sel = f.resolution?.selected || "";
+        const optA = typeof f.eng_options.option_a === "object" ? f.eng_options.option_a : { label: "Lean Guardrail", design: f.eng_options.option_a };
+        const optB = typeof f.eng_options.option_b === "object" ? f.eng_options.option_b : { label: "Durable Scale", design: f.eng_options.option_b };
+        const cits = (f.repo_citations || []).map((c) => `<span class="pill" style="font-size:0.68rem;">${esc(c)}</span>`).join(" ");
+
+        const card = document.createElement("div");
+        card.className = "decision-card " + (sel ? "locked" : "");
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.45rem;">
+            <div>
+              <span class="pill pill-amber">${esc(f.id)}</span>
+              <strong style="margin-left:0.4rem; font-size:0.93rem;">${esc(f.title || f.exploit_class)}</strong>
+            </div>
+            <span class="pill" style="border-color:var(--crimson); color:#fda4af;">${esc(f.exploit_class)}</span>
+          </div>
+          <div style="font-size:0.79rem; color:var(--text-2); margin-bottom:0.4rem;">
+            <strong>Draft Quote:</strong> "${esc(f.spec_quote)}"
+          </div>
+          <div style="background:var(--crimson-bg); border-left:3px solid var(--crimson); padding:0.5rem 0.7rem; border-radius:0 6px 6px 0; font-size:0.81rem; margin-bottom:0.55rem;">
+            <strong style="color:#fda4af;">Monkey's Paw Exploit:</strong> ${esc(f.monkeys_paw_grant)}
+          </div>
+          ${cits ? `<div style="margin-bottom:0.55rem; display:flex; gap:0.35rem; flex-wrap:wrap;">${cits}</div>` : ""}
+          <div class="options-row">
+            <div class="opt-card ${sel === "option_a" ? "selected" : ""}" data-idx="${idx}" data-choice="option_a">
+              <div style="display:flex; justify-content:space-between; font-family:var(--mono); font-size:0.75rem; font-weight:700; color:var(--cyan); margin-bottom:0.25rem;">
+                <span>Option A · ${esc(optA.label || "")}</span>
+                <span>${sel === "option_a" ? "LOCKED" : "Choose A"}</span>
+              </div>
+              <div style="font-size:0.8rem;">${esc(optA.design || optA.summary || "")}</div>
+            </div>
+            <div class="opt-card ${sel === "option_b" ? "selected" : ""}" data-idx="${idx}" data-choice="option_b">
+              <div style="display:flex; justify-content:space-between; font-family:var(--mono); font-size:0.75rem; font-weight:700; color:var(--cyan); margin-bottom:0.25rem;">
+                <span>Option B · ${esc(optB.label || "")}</span>
+                <span>${sel === "option_b" ? "LOCKED" : "Choose B"}</span>
+              </div>
+              <div style="font-size:0.8rem;">${esc(optB.design || optB.summary || "")}</div>
+            </div>
+          </div>
+          <div style="margin-bottom:0.6rem;">
+            <button class="btn btn-sm ${sel === "custom" ? "btn-emerald" : ""}" type="button" data-custom-toggle="${idx}">
+              ${sel === "custom" ? "Custom Guardrail Locked" : "Or Specify Custom Guardrail"}
+            </button>
+            <div class="${sel === "custom" ? "" : "hidden"}" style="margin-top:0.45rem;" id="customBox_${idx}">
+              <input class="input" data-custom-input="${idx}" value="${esc(f.resolution?.custom_design || "")}" placeholder="Describe custom engineering resolution (>= 15 chars, concrete design)..." />
+            </div>
+          </div>
+          <div class="pm-callout">
+            <strong style="font-family:var(--mono); font-size:0.72rem; color:var(--violet);">PM TRADE-OFF:</strong>
+            ${esc(typeof f.pm_tradeoff === "string" ? f.pm_tradeoff : JSON.stringify(f.pm_tradeoff))}
+          </div>
+        `;
+
+        card.querySelectorAll(".opt-card").forEach((oc) => {
+          oc.onclick = () => {
+            const choice = oc.getAttribute("data-choice");
+            f.resolution = Object.assign({}, f.resolution || {}, { selected: choice });
+            delete f.resolution.ears_clauses;
+            renderStep2();
+            scheduleAutoSave();
+          };
+        });
+
+        card.querySelector(`[data-custom-toggle="${idx}"]`).onclick = () => {
+          f.resolution = {
+            selected: "custom",
+            custom_design: f.resolution?.custom_design || "Enforce tenant-scoped transactional lock with explicit audit trail."
+          };
+          renderStep2();
+          scheduleAutoSave();
+        };
+
+        const cInput = card.querySelector(`[data-custom-input="${idx}"]`);
+        if (cInput) {
+          cInput.oninput = (e) => {
+            f.resolution = { selected: "custom", custom_design: e.target.value };
+            scheduleAutoSave();
+          };
+        }
+
+        mount.appendChild(card);
+      });
+
+      renderParkedList();
+    }
+
+    function renderParkedList() {
+      const parked = app.session?.parked_items || [];
+      document.getElementById("parkedCountPill").textContent = `${parked.length} Parked`;
+      const mount = document.getElementById("parkedListMount");
+      if (!parked.length) {
+        mount.innerHTML = '<span style="color:var(--text-2);">No off-scope tangents parked yet.</span>';
+        return;
+      }
+      mount.innerHTML = parked
+        .map(
+          (p) =>
+            `<div style="padding:0.38rem 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; gap:0.5rem;">
+              <span><strong style="color:var(--amber); font-family:var(--mono);">${esc(p.id)}</strong> <code>[${esc(p.category)}]</code> ${esc(p.item)}</span>
+              <span style="color:var(--text-2); font-size:0.76rem;">${esc(p.reason)}</span>
+            </div>`
+        )
+        .join("");
+    }
+
+    // ------------------------------------------------------------------
+    // STEP 3 RENDERER (INLINE EDITABLE HIERARCHY TREE)
+    // ------------------------------------------------------------------
+
+    function renumberTreeIds(nodes, preset, depth = 0, prefixNums = []) {
+      const levels = PRESET_LEVELS[preset] || PRESET_LEVELS.enterprise_4tier;
+      const mapPrefix = { epic: "EPIC", capability: "CAP", feature: "FEAT", story: "US" };
+      (nodes || []).forEach((n, idx) => {
+        const lvl = levels[Math.min(depth, levels.length - 1)];
+        n.level = lvl;
+        const nums = [...prefixNums, idx + 1];
+        n.id = `${mapPrefix[lvl]}-${nums.join(".")}`;
+        if (depth < levels.length - 1) {
+          n.children = n.children || [];
+          renumberTreeIds(n.children, preset, depth + 1, nums);
+        } else {
+          n.children = [];
+        }
+      });
+    }
+
+    function renderStep3() {
+      const mount = document.getElementById("backlogTreeMount");
+      mount.innerHTML = "";
+      if (!app.session || !(app.session.backlog_tree || []).length) {
+        mount.innerHTML = `
+          <div style="padding:1.5rem; text-align:center; color:var(--text-2); border:1px dashed var(--border); border-radius:8px;">
+            No work breakdown generated yet. Lock your Monkey's Paw cards in Step 2 and click <strong>Generate Editable Work Breakdown</strong>, or click <strong>+ Add Top-Level Item</strong> above.
+          </div>`;
+        return;
+      }
+
+      const preset = app.session.hierarchy_preset || "enterprise_4tier";
+      const levels = PRESET_LEVELS[preset] || PRESET_LEVELS.enterprise_4tier;
+
+      function buildNodeDom(node, parentArr, idx, depth) {
+        const lvl = node.level || levels[Math.min(depth, levels.length - 1)];
+        const childLvl = depth < levels.length - 1 ? levels[depth + 1] : null;
+        const wrap = document.createElement("div");
+        wrap.className = `tree-node level-${lvl}`;
+
+        const guardsHtml = (node.guardrail_ids || [])
+          .map((g) => `<span class="pill pill-amber" style="font-size:0.68rem;">${esc(g)}</span>`)
+          .join(" ");
+
+        wrap.innerHTML = `
+          <div class="node-top-bar">
+            <span class="lvl-badge lvl-${esc(lvl)}">${esc(node.id)} · ${esc(lvl)}</span>
+            <input class="node-title-input" data-field="title" value="${esc(node.title)}" placeholder="${esc(lvl)} title..." />
+            <input class="node-est-input" data-field="estimate" value="${esc(node.estimate || "")}" placeholder="Pts" title="Story Points / Estimate" />
+            ${guardsHtml}
+            <div style="display:flex; gap:0.25rem;">
+              ${childLvl ? `<button class="btn btn-sm btn-emerald" type="button" data-act="add-child">+ ${esc(childLvl)}</button>` : ""}
+              <button class="btn btn-sm" type="button" data-act="up" ${idx === 0 ? "disabled" : ""}>↑</button>
+              <button class="btn btn-sm" type="button" data-act="down" ${idx === parentArr.length - 1 ? "disabled" : ""}>↓</button>
+              <button class="btn btn-sm btn-danger" type="button" data-act="del">Delete</button>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:0.5rem; margin-bottom:0.45rem;">
+            <textarea class="input" data-field="desc" rows="2" style="font-size:0.8rem; resize:vertical;" placeholder="${
+              lvl === "story" ? "As a <persona>, I want <capability>, so that <outcome>..." : "Scope & outcome description..."
+            }">${esc(node.description || "")}</textarea>
+            <input class="input" data-field="touch" value="${esc((node.repo_touchpoints || []).join(", "))}" style="font-family:var(--mono); font-size:0.75rem;" placeholder="Repo touchpoints (comma-separated, e.g. app/billing.py:42)" />
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:0.74rem; font-weight:700; color:var(--text-2);">Acceptance Criteria (EARS / Given-When-Then)</span>
+              <button class="btn btn-sm" type="button" data-act="add-ac">+ Add Criterion</button>
+            </div>
+            <div class="ac-list" data-ac-mount></div>
+          </div>
+          <div class="node-children" data-children-mount></div>
+        `;
+
+        wrap.querySelector('[data-field="title"]').oninput = (e) => {
+          node.title = e.target.value;
+          scheduleAutoSave();
+        };
+        wrap.querySelector('[data-field="estimate"]').oninput = (e) => {
+          node.estimate = e.target.value;
+          scheduleAutoSave();
+        };
+        wrap.querySelector('[data-field="desc"]').oninput = (e) => {
+          node.description = e.target.value;
+          scheduleAutoSave();
+        };
+        wrap.querySelector('[data-field="touch"]').oninput = (e) => {
+          node.repo_touchpoints = e.target.value
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+          scheduleAutoSave();
+        };
+
+        const acMount = wrap.querySelector("[data-ac-mount]");
+        node.acceptance_criteria = node.acceptance_criteria || [];
+        node.acceptance_criteria.forEach((acText, acIdx) => {
+          const row = document.createElement("div");
+          row.className = "ac-row";
+          row.innerHTML = `
+            <input class="ac-input" value="${esc(acText)}" />
+            <button class="btn btn-sm btn-danger" type="button">x</button>
+          `;
+          row.querySelector("input").oninput = (e) => {
+            node.acceptance_criteria[acIdx] = e.target.value;
+            scheduleAutoSave();
+          };
+          row.querySelector("button").onclick = () => {
+            node.acceptance_criteria.splice(acIdx, 1);
+            renderStep3();
+            scheduleAutoSave();
+          };
+          acMount.appendChild(row);
+        });
+
+        wrap.querySelector('[data-act="add-ac"]').onclick = () => {
+          node.acceptance_criteria.push("WHEN <trigger>, THE SYSTEM SHALL <verifiable outcome>.");
+          renderStep3();
+          scheduleAutoSave();
+        };
+
+        const addChildBtn = wrap.querySelector('[data-act="add-child"]');
+        if (addChildBtn) {
+          addChildBtn.onclick = () => {
+            node.children = node.children || [];
+            node.children.push({
+              level: childLvl,
+              title: `New ${childLvl.charAt(0).toUpperCase() + childLvl.slice(1)}`,
+              description: childLvl === "story" ? "As a user, I want ..., so that ..." : "",
+              estimate: childLvl === "story" ? "3" : "",
+              acceptance_criteria: ["WHEN requested, THE SYSTEM SHALL enforce locked guardrails."],
+              guardrail_ids: [...(node.guardrail_ids || [])],
+              repo_touchpoints: [],
+              children: []
+            });
+            renumberTreeIds(app.session.backlog_tree, preset);
+            renderStep3();
+            scheduleAutoSave();
+          };
+        }
+
+        wrap.querySelector('[data-act="up"]').onclick = () => {
+          if (idx > 0) {
+            [parentArr[idx - 1], parentArr[idx]] = [parentArr[idx], parentArr[idx - 1]];
+            renumberTreeIds(app.session.backlog_tree, preset);
+            renderStep3();
+            scheduleAutoSave();
+          }
+        };
+        wrap.querySelector('[data-act="down"]').onclick = () => {
+          if (idx < parentArr.length - 1) {
+            [parentArr[idx + 1], parentArr[idx]] = [parentArr[idx], parentArr[idx + 1]];
+            renumberTreeIds(app.session.backlog_tree, preset);
+            renderStep3();
+            scheduleAutoSave();
+          }
+        };
+        wrap.querySelector('[data-act="del"]').onclick = () => {
+          parentArr.splice(idx, 1);
+          renumberTreeIds(app.session.backlog_tree, preset);
+          renderStep3();
+          scheduleAutoSave();
+        };
+
+        const chMount = wrap.querySelector("[data-children-mount]");
+        if (node.children && node.children.length > 0 && depth < levels.length - 1) {
+          node.children.forEach((ch, cIdx) => {
+            chMount.appendChild(buildNodeDom(ch, node.children, cIdx, depth + 1));
+          });
+        } else {
+          chMount.classList.add("hidden");
+        }
+
+        return wrap;
+      }
+
+      app.session.backlog_tree.forEach((rootNode, rIdx) => {
+        mount.appendChild(buildNodeDom(rootNode, app.session.backlog_tree, rIdx, 0));
+      });
+    }
+
+    // ------------------------------------------------------------------
+    // STEP 4 EXPORTS
+    // ------------------------------------------------------------------
+
+    async function refreshExportPreview() {
+      if (!app.session) return;
+      try {
+        const res = await apiFetch("/api/export", {
+          method: "POST",
+          body: JSON.stringify({
+            format: app.activeExportFmt,
+            session: app.session,
+            include_parked: true
+          })
+        });
+        app.activeExportData = res;
+        document.getElementById("exportMetaLabel").textContent = `File: ${res.filename} · MIME: ${res.mime}`;
+        document.getElementById("exportPreviewPre").textContent = res.content;
+      } catch (err) {
+        showBanner(err.message, "error");
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // PROVIDER MODAL & EVENTS
+    // ------------------------------------------------------------------
+
+    function openProviderModal() {
+      document.getElementById("provSelect").value = app.providerCfg.provider || "auto";
+      document.getElementById("provModelInput").value = app.providerCfg.model || "";
+      document.getElementById("provKeyInput").value = app.providerCfg.api_key || "";
+      document.getElementById("provBaseUrlInput").value = app.providerCfg.base_url || "";
+      document.getElementById("providerModal").classList.add("open");
+    }
+    function closeProviderModal() {
+      document.getElementById("providerModal").classList.remove("open");
+    }
+    function saveProviderModal() {
+      app.providerCfg = {
+        provider: document.getElementById("provSelect").value,
+        model: document.getElementById("provModelInput").value.trim(),
+        api_key: document.getElementById("provKeyInput").value.trim(),
+        base_url: document.getElementById("provBaseUrlInput").value.trim()
+      };
+      sessionStorage.setItem("mp_provider_cfg", JSON.stringify(app.providerCfg));
+      document.getElementById("activeProviderBadge").textContent = `Engine: ${app.providerCfg.provider}`;
+      closeProviderModal();
+    }
+
+    async function openEnvModal() {
+      hideBanner();
+      try {
+        const data = await apiFetch("/api/env");
+        renderEnvModalFields(data);
+        document.getElementById("envModal").classList.add("open");
+      } catch (err) {
+        showBanner(err.message, "error");
+      }
+    }
+
+    function closeEnvModal() {
+      document.getElementById("envModal").classList.remove("open");
+    }
+
+    function renderEnvModalFields(envData) {
+      const editable = Boolean(envData.editable_on_server);
+      const bannerEl = document.getElementById("envModalModeBanner");
+      const footerEl = document.getElementById("envSaveFooter");
+      if (editable) {
+        bannerEl.innerHTML =
+          `<strong>Localhost Mode:</strong> Values entered below are saved to your local gitignored <code>.env</code> file and activated immediately with zero server restart. Leave a box blank to keep its current value.`;
+        footerEl.classList.remove("hidden");
+      } else {
+        bannerEl.innerHTML =
+          `<strong>Hosted Cloud / Railway Mode:</strong> Direct disk <code>.env</code> writes are disabled on public servers for security. Manage persistent team keys in your <strong>Railway Dashboard -&gt; Service -&gt; Variables</strong> tab (or use <strong>AI Engine</strong> for browser-only session keys).`;
+        footerEl.classList.add("hidden");
+      }
+
+      const mount = document.getElementById("envVarsFieldsMount");
+      mount.innerHTML = "";
+      (envData.variables || []).forEach((v) => {
+        const row = document.createElement("div");
+        row.className = "field";
+        row.style.marginBottom = "0.7rem";
+        const statusBadge = v.configured
+          ? `<span class="pill pill-emerald" style="font-size:0.68rem;">Active (${esc(v.masked_value)} · ${esc(v.source)})</span>`
+          : `<span class="pill" style="font-size:0.68rem; color:var(--text-2);">Not Set</span>`;
+
+        row.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; margin-bottom:0.28rem;">
+            <label style="margin:0;"><code>${esc(v.key)}</code> — ${esc(v.label)}</label>
+            <div style="display:flex; gap:0.35rem; align-items:center;">
+              ${statusBadge}
+              ${editable && v.configured ? `<button class="btn btn-sm btn-danger" type="button" data-clear-env="${esc(v.key)}">Clear</button>` : ""}
+            </div>
+          </div>
+          ${
+            editable
+              ? `<input class="input" type="${v.secret ? "password" : "text"}" data-env-input="${esc(v.key)}" placeholder="${
+                  v.configured ? "Leave blank to keep active value, or paste new value..." : esc(v.placeholder)
+                }" />`
+              : ""
+          }
+        `;
+
+        const clrBtn = row.querySelector(`[data-clear-env="${v.key}"]`);
+        if (clrBtn) {
+          clrBtn.onclick = async () => {
+            try {
+              const updated = await apiFetch("/api/env", {
+                method: "POST",
+                body: JSON.stringify({ variables: { [v.key]: "__CLEAR__" } })
+              });
+              renderEnvModalFields(updated);
+              const cfg = await apiFetch("/api/config");
+              app.config = cfg;
+            } catch (err) {
+              showBanner(err.message, "error");
+            }
+          };
+        }
+
+        mount.appendChild(row);
+      });
+    }
+
+    async function saveEnvVarsFromModal() {
+      const updates = {};
+      document.querySelectorAll("[data-env-input]").forEach((inp) => {
+        const k = inp.getAttribute("data-env-input");
+        const val = inp.value.trim();
+        if (val) updates[k] = val;
+      });
+      if (!Object.keys(updates).length) {
+        closeEnvModal();
+        return;
+      }
+      try {
+        const res = await apiFetch("/api/env", {
+          method: "POST",
+          body: JSON.stringify({ variables: updates })
+        });
+        if (updates.STUDIO_PASSCODE) {
+          app.passcode = updates.STUDIO_PASSCODE;
+          sessionStorage.setItem("mp_studio_passcode", app.passcode);
+        }
+        const cfg = await apiFetch("/api/config");
+        app.config = cfg;
+        renderEnvModalFields(res);
+        showBanner("Saved environment variables to local .env and activated immediately.", "info");
+        closeEnvModal();
+      } catch (err) {
+        showBanner(err.message, "error");
+      }
+    }
+
+    async function runAnalysis() {
+      hideBanner();
+      const btn = document.getElementById("runAnalyzeBtn");
+      const orig = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "Scanning Surface & Running Monkey's Paw Audit...";
+      try {
+        const payload = {
+          session_id: app.session?.id || "",
+          title: document.getElementById("prdTitleInput").value.trim(),
+          prd_text: document.getElementById("prdTextInput").value,
+          source_type: document.getElementById("sourceTypeSelect").value,
+          repo_target: document.getElementById("repoTargetInput").value.trim(),
+          branch: document.getElementById("repoBranchInput").value.trim(),
+          github_token: document.getElementById("ghTokenInput").value.trim(),
+          hierarchy_preset: document.getElementById("hierarchyPresetSelect").value,
+          provider_config: app.providerCfg
+        };
+        const res = await apiFetch("/api/analyze", { method: "POST", body: JSON.stringify(payload) });
+        loadSessionIntoUi(res.session);
+        setStep(2);
+      } catch (err) {
+        showBanner(err.message, "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = orig;
+      }
+    }
+
+    async function runGenerateBacklog() {
+      if (!app.session?.id) return;
+      hideBanner();
+      const btn = document.getElementById("generateBacklogBtn");
+      const orig = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "Synthesizing Work Breakdown...";
+      try {
+        const res = await apiFetch(`/api/sessions/${app.session.id}/backlog`, {
+          method: "POST",
+          body: JSON.stringify({
+            findings_doc: app.session.findings_doc,
+            hierarchy_preset: app.session.hierarchy_preset,
+            provider_config: app.providerCfg
+          })
+        });
+        loadSessionIntoUi(res.session);
+        setStep(3);
+      } catch (err) {
+        showBanner(err.message, "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = orig;
+      }
+    }
+
+    // Wire listeners
+    document.querySelectorAll(".step-tab").forEach((b) => {
+      b.onclick = () => setStep(Number(b.getAttribute("data-step")));
+    });
+    document.getElementById("sourceTypeSelect").onchange = updateSourceVisibility;
+    document.getElementById("setupEnvBtn").onclick = openEnvModal;
+    document.getElementById("saveEnvBtn").onclick = saveEnvVarsFromModal;
+    document.getElementById("providerSettingsBtn").onclick = openProviderModal;
+    document.getElementById("runAnalyzeBtn").onclick = runAnalysis;
+    document.getElementById("generateBacklogBtn").onclick = runGenerateBacklog;
+    document.getElementById("regenBacklogBtn").onclick = runGenerateBacklog;
+
+    document.getElementById("newSessionBtn").onclick = () => {
+      app.session = null;
+      history.replaceState(null, "", "/");
+      document.getElementById("prdTitleInput").value = "";
+      document.getElementById("prdTextInput").value = "";
+      setStep(1);
+    };
+
+    document.getElementById("shareLinkBtn").onclick = () => {
+      if (!app.session?.id) {
+        showBanner("Run an analysis first to generate a shareable session URL.", "info");
+        return;
+      }
+      const url = `${window.location.origin}/s/${app.session.id}`;
+      navigator.clipboard?.writeText(url);
+      showBanner(`Copied shareable session link: ${url}`, "info");
+    };
+
+    document.getElementById("sessionsSelect").onchange = async (e) => {
+      const sid = e.target.value;
+      if (!sid) return;
+      try {
+        const res = await apiFetch(`/api/sessions/${sid}`);
+        loadSessionIntoUi(res.session);
+        setStep(res.session.backlog_tree?.length ? 3 : 2);
+      } catch (err) {
+        showBanner(err.message, "error");
+      }
+    };
+
+    document.getElementById("uploadPrdFile").onchange = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      document.getElementById("prdTextInput").value = await file.text();
+    };
+
+    document.getElementById("importJsonInput").onchange = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const parsed = JSON.parse(await file.text());
+        const res = await apiFetch("/api/sessions", { method: "POST", body: JSON.stringify(parsed) });
+        loadSessionIntoUi(res.session);
+        setStep(res.session.backlog_tree?.length ? 3 : 2);
+      } catch (err) {
+        showBanner("Invalid JSON session bundle: " + err.message, "error");
+      }
+    };
+
+    document.getElementById("parkTangentForm").onsubmit = async (e) => {
+      e.preventDefault();
+      if (!app.session?.id) return;
+      const itemEl = document.getElementById("parkItemInput");
+      const reasonEl = document.getElementById("parkReasonInput");
+      if (!itemEl.value.trim()) return;
+      try {
+        const res = await apiFetch(`/api/sessions/${app.session.id}/park`, {
+          method: "POST",
+          body: JSON.stringify({
+            item: itemEl.value.trim(),
+            category: document.getElementById("parkCatSelect").value,
+            reason: reasonEl.value.trim()
+          })
+        });
+        app.session = res.session;
+        itemEl.value = "";
+        reasonEl.value = "";
+        renderParkedList();
+      } catch (err) {
+        showBanner(err.message, "error");
+      }
+    };
+
+    document.getElementById("editorPresetSelect").onchange = (e) => {
+      if (!app.session) return;
+      app.session.hierarchy_preset = e.target.value;
+      document.getElementById("hierarchyPresetSelect").value = e.target.value;
+      renumberTreeIds(app.session.backlog_tree || [], e.target.value);
+      renderStep3();
+      scheduleAutoSave();
+    };
+
+    document.getElementById("addRootNodeBtn").onclick = () => {
+      if (!app.session) return;
+      const preset = app.session.hierarchy_preset || "enterprise_4tier";
+      const topLvl = (PRESET_LEVELS[preset] || PRESET_LEVELS.enterprise_4tier)[0];
+      app.session.backlog_tree = app.session.backlog_tree || [];
+      app.session.backlog_tree.push({
+        level: topLvl,
+        title: `New ${topLvl.charAt(0).toUpperCase() + topLvl.slice(1)}`,
+        description: "",
+        estimate: "8",
+        acceptance_criteria: ["WHEN workflow executes, THE SYSTEM SHALL satisfy locked acceptance criteria."],
+        guardrail_ids: [],
+        repo_touchpoints: [],
+        children: []
+      });
+      renumberTreeIds(app.session.backlog_tree, preset);
+      renderStep3();
+      scheduleAutoSave();
+    };
+
+    document.querySelectorAll("#exportFormatTabs button").forEach((btn) => {
+      btn.onclick = () => {
+        document.querySelectorAll("#exportFormatTabs button").forEach((b) => b.classList.remove("btn-emerald"));
+        btn.classList.add("btn-emerald");
+        app.activeExportFmt = btn.getAttribute("data-efmt");
+        refreshExportPreview();
+      };
+    });
+
+    document.getElementById("copyExportBtn").onclick = () => {
+      if (!app.activeExportData) return;
+      navigator.clipboard?.writeText(app.activeExportData.content);
+      showBanner(`Copied ${app.activeExportData.filename} to clipboard.`, "info");
+    };
+
+    document.getElementById("downloadExportBtn").onclick = () => {
+      if (!app.activeExportData) return;
+      const blob = new Blob([app.activeExportData.content], { type: app.activeExportData.mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = app.activeExportData.filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    };
+
+    document.getElementById("passcodeForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const val = document.getElementById("passcodeInput").value;
+      app.passcode = val;
+      try {
+        await apiFetch("/api/auth/verify", { method: "POST", body: JSON.stringify({ passcode: val }) });
+        sessionStorage.setItem("mp_studio_passcode", val);
+        document.getElementById("passcodeModal").classList.remove("open");
+        await bootApp();
+      } catch (_) {
+        showBanner("Invalid Studio passcode.", "error");
+      }
+    };
+
+    async function bootApp() {
+      try {
+        const cfg = await apiFetch("/api/config");
+        app.config = cfg;
+        if (!cfg.allow_local_paths) {
+          document.getElementById("localPathOption").remove();
+        }
+        const sp = cfg.server_providers || {};
+        const configured = Object.keys(sp).filter((k) => k !== "demo" && sp[k]);
+        document.getElementById("serverKeyStatusNote").textContent = configured.length
+          ? `Server environment keys detected for: ${configured.join(", ")}.`
+          : "No server LLM keys set — Studio uses Deterministic Sandbox automatically unless you paste a BYOK key above.";
+        document.getElementById("activeProviderBadge").textContent = `Engine: ${app.providerCfg.provider || "auto"}`;
+
+        if (cfg.passcode_required && !app.passcode) {
+          document.getElementById("passcodeModal").classList.add("open");
+          return;
+        }
+
+        await refreshSessionsDropdown();
+
+        // Deep-link `/s/<session_id>` loader
+        const pathMatch = window.location.pathname.match(/^\/s\/(s_[A-Za-z0-9_-]+)/);
+        if (pathMatch) {
+          const res = await apiFetch(`/api/sessions/${pathMatch[1]}`);
+          loadSessionIntoUi(res.session);
+          setStep(res.session.backlog_tree?.length ? 3 : 2);
+        } else {
+          loadSamplePrd(0);
+        }
+      } catch (err) {
+        showBanner(err.message, "error");
+      }
+    }
+
+    bootApp();
+  </script>
+</body>
+</html>

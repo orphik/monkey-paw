@@ -8,7 +8,7 @@
 [![Python 3.10+ Stdlib Only](https://img.shields.io/badge/Python-3.10%2B%20stdlib%20only-3776AB.svg)](./scripts/)
 [![Agent Skills Spec](https://img.shields.io/badge/spec-agentskills.io-amber.svg)](./SKILL.md)
 
-**Try it in your browser (zero API key):** **[Live Interactive Simulator ->](https://orphik.github.io/monkey-paw/)** · [Simulator Source (`docs/index.html`)](https://github.com/orphik/monkey-paw/blob/main/docs/index.html)
+**Try it in your browser (zero API key):** **[Live Interactive Simulator ->](https://orphik.github.io/monkey-paw/)** · [Simulator Source (`docs/index.html`)](https://github.com/orphik/monkey-paw/blob/main/docs/index.html) · **[Full User Guide (`docs/USER-GUIDE.md`)](./docs/USER-GUIDE.md)**
 
 ---
 
@@ -132,6 +132,21 @@ Open [`docs/index.html`](./docs/index.html) locally or host via GitHub Pages (`d
 - **Clickable Bilingual Decision Cards:** Compare Option A vs. Option B engineering designs alongside plain-English PM UX/latency/scope pills.
 - **Live Tangent Trap:** Route realistic teammate scope-creep comments straight into `PARKING-LOT.md`.
 - **Real-Time Compiler:** Watch `SPEC.md` recompile live across **EARS**, **Spec-Kit**, **OpenSpec**, and **Jira** formats.
+
+---
+
+## Monkey's Paw Studio (Local & Railway Web Service)
+
+For **Product Owners, TPMs, and Engineering Leads** working outside an IDE, `monkey-paw` ships a zero-dependency web workbench (`studio/`) that ingests PRDs, scans optional GitHub repos (`--depth 1` ephemeral clone) or runs Greenfield, deals Bilingual Decision Cards, and generates an **inline-editable Epic / Capability / Feature / User Story hierarchy** with one-click **Jira CSV**, **BACKLOG.md**, **EARS**, **Spec-Kit**, and **OpenSpec** exports.
+
+```bash
+# Start locally in <100ms (Python 3.10+ stdlib only — zero pip install)
+python3 -m studio --port 8787
+```
+
+- **Configurable Hierarchies:** Switch between `Epic -> Capability -> Feature -> Story`, `Capability -> Epic -> Feature -> Story`, and `Epic -> Feature -> Story` with inline story/AC editing.
+- **Multi-Provider + Zero-Key Sandbox:** Works offline out of the box via Deterministic Sandbox, or connects to **Google Gemini**, **Anthropic Claude**, **OpenAI**, and **Ollama / OpenRouter** via server env vars or browser BYOK.
+- **Turnkey Railway Hosting:** Includes [`Dockerfile`](./Dockerfile) and [`railway.json`](./railway.json) with `/api/health` readiness probes, optional `/data` SQLite session sharing (`/s/<id>`), and `STUDIO_PASSCODE` protection. See [`docs/USER-GUIDE.md`](./docs/USER-GUIDE.md).
 
 ---
 

@@ -1138,6 +1138,76 @@ def extract_go_surface(rel_file: str, text: str, buckets: dict[str, list[dict[st
             buckets["auth"].append(_make_item(sym, "go_auth_middleware", rel_file, line))
 
 
+_CS_RECORD_RE = re.compile(r"\b(?:public|internal)\s+(?:sealed\s+)?record\s+([A-Za-z_]\w*)\s*\(([^)]*)\)")
+_CS_ENUM_RE = re.compile(r"\b(?:public|internal)\s+enum\s+([A-Za-z_]\w*)\s*\{([\s\S]*?)\}")
+_CS_ROUTE_PREFIX_RE = re.compile(r"\[Route\(\s*\"([^\"]+)\"\s*\)\]")
+_CS_HTTP_ATTR_RE = re.compile(
+    r"\[(HttpGet|HttpPost|HttpPut|HttpPatch|HttpDelete)(?:\(\s*\"([^\"]*)\"\s*\))?\][^{;]{0,200}?\b([A-Za-z_]\w*)\s*\("
+)
+_CS_AUTH_RE = re.compile(r"\[Authorize(?:\(([^)]*)\))?\]")
+
+
+def extract_csharp_surface(rel_file: str, text: str, buckets: dict[str, list[dict[str, Any]]]) -> None:
+    """Extract C# / .NET records, enums, controller routes, and [Authorize] attributes."""
+    prefix = ""
+    pm = _CS_ROUTE_PREFIX_RE.search(text[:2000])
+    if pm:
+        prefix = "/" + pm.group(1).strip("/")
+
+    for match in _CS_RECORD_RE.finditer(text):
+        name, raw_params = match.group(1), match.group(2)
+        line = text.count("\n", 0, match.start()) + 1
+        fields = [p.strip().split()[-1] for p in raw_params.split(",") if len(p.strip().split()) >= 2]
+        buckets["models"].append(
+            _make_item(name, "csharp_record", rel_file, line, f"fields=[{', '.join(fields[:10])}]" if fields else "")
+        )
+
+    for match in _CS_ENUM_RE.finditer(text):
+        name, body = match.group(1), match.group(2)
+        vals = [ln.split("=")[0].strip().rstrip(",") for ln in body.splitlines() if ln.strip() and not ln.strip().startswith("//")]
+        line = text.count("\n", 0, match.start()) + 1
+        buckets["enums"].append(_make_item(name, "csharp_enum", rel_file, line, f"values=[{', '.join(vals[:12])}]"))
+
+    for match in _CS_HTTP_ATTR_RE.finditer(text):
+        verb = match.group(1).replace("Http", "").upper()
+        sub = match.group(2) or ""
+        handler = match.group(3)
+        full = (prefix + ("/" + sub.strip("/") if sub.strip("/") else "")) or "/"
+        line = text.count("\n", 0, match.start()) + 1
+        buckets["routes"].append(_make_item(f"{verb} {full}", "dotnet_route", rel_file, line, f"handler={handler}"))
+
+    for match in _CS_AUTH_RE.finditer(text):
+        pol = (match.group(1) or "").strip()
+        line = text.count("\n", 0, match.start()) + 1
+        buckets["auth"].append(_make_item(f"[Authorize({pol})]" if pol else "[Authorize]", "dotnet_authorize", rel_file, line))
+
+
+_RB_MODEL_RE = re.compile(r"^\s*class\s+([A-Za-z0-9_:]+)\s*<\s*(?:ApplicationRecord|ActiveRecord::Base)", re.MULTILINE)
+_RB_WORKER_RE = re.compile(
+    r"^\s*class\s+([A-Za-z0-9_:]+)\s*<\s*(?:ApplicationJob|ActiveJob::Base)|include\s+Sidekiq::(?:Worker|Job)",
+    re.MULTILINE,
+)
+_RB_ROUTE_RE = re.compile(r"^\s*(get|post|put|patch|delete)\s+['\"]([^'\"]+)['\"]", re.MULTILINE)
+
+
+def extract_ruby_surface(rel_file: str, text: str, buckets: dict[str, list[dict[str, Any]]]) -> None:
+    """Extract Ruby on Rails models, jobs/Sidekiq workers, and routes."""
+    for match in _RB_MODEL_RE.finditer(text):
+        line = text.count("\n", 0, match.start()) + 1
+        buckets["models"].append(_make_item(match.group(1), "rails_model", rel_file, line))
+
+    for match in _RB_WORKER_RE.finditer(text):
+        line = text.count("\n", 0, match.start()) + 1
+        name = match.group(1) or Path(rel_file).stem
+        buckets["workers"].append(_make_item(name, "ruby_worker", rel_file, line))
+
+    if rel_file.endswith("routes.rb"):
+        for match in _RB_ROUTE_RE.finditer(text):
+            verb, rpath = match.group(1).upper(), match.group(2)
+            line = text.count("\n", 0, match.start()) + 1
+            buckets["routes"].append(_make_item(f"{verb} /{rpath.lstrip('/')}", "rails_route", rel_file, line))
+
+
 # ---------------------------------------------------------------------------
 # Main Repository Scanner & Deterministic Byte-Cap Serializer
 # ---------------------------------------------------------------------------
@@ -1293,6 +1363,10 @@ def scan_repository(repo_path: Path, max_bytes: int = DEFAULT_MAX_OUTPUT_BYTES) 
                 extract_java_surface(f_rel, text, buckets)
             elif ext == ".go":
                 extract_go_surface(f_rel, text, buckets)
+            elif ext == ".cs":
+                extract_csharp_surface(f_rel, text, buckets)
+            elif ext == ".rb":
+                extract_ruby_surface(f_rel, text, buckets)
 
     has_surface = stats["scanned_code_files"] > 0 or any(bool(v) for v in buckets.values())
     mode = "brownfield" if has_surface else "greenfield"

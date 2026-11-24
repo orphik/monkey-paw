@@ -32,8 +32,10 @@ This repository implements **`monkey-paw`**, a portable, zero-dependency pre-cod
 - `scripts/mcp_stdio_server.py` — Zero-dependency JSON-RPC 2.0 `stdio` MCP server exposing all four tools.
 - `references/` — Progressive-disclosure manuals (`loophole-taxonomy.md`, `export-formats.md`, `facilitation-protocol.md`).
 - `assets/` — Card/parking-lot templates and `examples/sample-fintech-refund/` end-to-end fixture.
+- `studio/` — Zero-dependency web service (`python3 -m studio` / Railway Docker) for PRD ingestion, ephemeral GitHub scanning, inline-editable Epic/Capability/Feature/User Story hierarchies, and Jira CSV exports.
 - `docs/index.html` — Single-file offline-capable GitHub Pages simulator (zero API keys).
-- `tests/` — `unittest` suite covering surface scanning, secret redaction, validator rules, compiler formats, MCP framing, and `agentskills.io` spec compliance.
+- `docs/USER-GUIDE.md` — End-to-end guide for Product Owners, TPMs, and Engineers.
+- `tests/` — `unittest` suite covering surface scanning, secret redaction, validator rules, compiler formats, MCP framing, Studio HTTP service, and `agentskills.io` spec compliance.
 
 ---
 

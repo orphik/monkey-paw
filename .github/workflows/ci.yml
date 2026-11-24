@@ -46,3 +46,4 @@ jobs:
             --item "Add multi-currency settlement reporting" \
             --category phase-2 \
             --out .monkey-paw/smoke-parking-lot.md
+          python -m studio --help

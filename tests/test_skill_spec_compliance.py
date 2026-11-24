@@ -108,10 +108,16 @@ class TestSkillAndRepoSpecCompliance(unittest.TestCase):
 
     def test_python_scripts_use_stdlib_only(self) -> None:
         scripts_dir = REPO_ROOT / "scripts"
-        local_modules = {p.stem for p in scripts_dir.glob("*.py")} | {"scripts"}
+        studio_dir = REPO_ROOT / "studio"
+        local_modules = (
+            {p.stem for p in scripts_dir.glob("*.py")}
+            | {p.stem for p in studio_dir.glob("*.py")}
+            | {"scripts", "studio"}
+        )
         stdlib_names = set(sys.stdlib_module_names) | {"__future__"}
 
-        for py_file in sorted(scripts_dir.glob("*.py")):
+        py_files = sorted(scripts_dir.glob("*.py")) + sorted(studio_dir.glob("*.py"))
+        for py_file in py_files:
             tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
