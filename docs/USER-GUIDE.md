@@ -96,7 +96,7 @@ Studio transforms your PRD + locked Monkey's Paw decisions into a visual, color-
 | Environment Variable | Required? | Purpose |
 | :--- | :--- | :--- |
 | `STUDIO_PASSCODE` | **Recommended** | Protects your hosted Studio behind a constant-time passcode prompt whenever you attach server-side LLM or GitHub keys. |
-| `GEMINI_API_KEY` | Optional | Enables server-side Google Gemini analysis (`gemini-2.5-flash` default). |
+| `GEMINI_API_KEY` | Optional | Enables server-side Google Gemini analysis (`gemini-3.8-flash` default). |
 | `ANTHROPIC_API_KEY` | Optional | Enables server-side Anthropic Claude analysis (`claude-sonnet-4-20250514` default). |
 | `OPENAI_API_KEY` | Optional | Enables server-side OpenAI analysis (`gpt-4.1-mini` default). |
 | `OPENAI_COMPAT_BASE_URL` | Optional | Base URL for OpenRouter, vLLM, or Ollama (`OPENAI_COMPAT_API_KEY` optional). |

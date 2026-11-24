@@ -294,7 +294,7 @@ end
                 st_env, res_env = _req(
                     "POST",
                     "/api/env",
-                    {"variables": {"GEMINI_API_KEY": fake_gem_key, "STUDIO_DEFAULT_MODEL": "gemini-2.5-flash"}},
+                    {"variables": {"GEMINI_API_KEY": fake_gem_key, "STUDIO_DEFAULT_MODEL": "gemini-3.8-flash"}},
                 )
                 self.assertEqual(st_env, 200, msg=res_env)
                 raw_env_resp = json.dumps(res_env)

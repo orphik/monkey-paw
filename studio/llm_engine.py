@@ -31,7 +31,7 @@ from scripts.validate_findings import VALID_EXPLOIT_CLASSES, validate_findings_d
 from studio.backlog_compiler import get_preset_levels, normalize_backlog_tree  # noqa: E402
 
 DEFAULT_MODELS: dict[str, str] = {
-    "gemini": "gemini-2.5-flash",
+    "gemini": "gemini-3.8-flash",
     "anthropic": "claude-sonnet-4-20250514",
     "openai": "gpt-4.1-mini",
     "openai_compatible": "llama3.1",

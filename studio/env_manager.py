@@ -50,7 +50,7 @@ MANAGED_ENV_VARS: tuple[dict[str, Any], ...] = (
         "key": "STUDIO_DEFAULT_MODEL",
         "label": "Default Model Override",
         "secret": False,
-        "placeholder": "Optional (e.g., gemini-2.5-flash)",
+        "placeholder": "Optional (e.g., gemini-3.8-flash)",
     },
     {
         "key": "GITHUB_TOKEN",
