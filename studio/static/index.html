@@ -1645,6 +1645,7 @@ When a homeowner project receives fewer than 4 blind contractor bids within the 
         await apiFetch("/api/auth/verify", { method: "POST", body: JSON.stringify({ passcode: val }) });
         sessionStorage.setItem("mp_studio_passcode", val);
         document.getElementById("passcodeModal").classList.remove("open");
+        hideBanner();
         await bootApp();
       } catch (_) {
         showBanner("Invalid Studio passcode.", "error");
@@ -1656,14 +1657,17 @@ When a homeowner project receives fewer than 4 blind contractor bids within the 
         const cfg = await apiFetch("/api/config");
         app.config = cfg;
         if (!cfg.allow_local_paths) {
-          document.getElementById("localPathOption").remove();
+          document.getElementById("localPathOption")?.remove();
         }
         const sp = cfg.server_providers || {};
         const configured = Object.keys(sp).filter((k) => k !== "demo" && sp[k]);
         document.getElementById("serverKeyStatusNote").textContent = configured.length
           ? `Server environment keys detected for: ${configured.join(", ")}.`
           : "No server LLM keys set — Studio uses Deterministic Sandbox automatically unless you paste a BYOK key above.";
-        document.getElementById("activeProviderBadge").textContent = `Engine: ${app.providerCfg.provider || "auto"}`;
+        const activeProv = app.providerCfg.provider || "auto";
+        const resolvedHint = activeProv === "auto" ? (configured[0] || "sandbox") : activeProv;
+        document.getElementById("activeProviderBadge").textContent =
+          activeProv === "auto" ? `Engine: auto (${resolvedHint})` : `Engine: ${activeProv}`;
 
         if (cfg.passcode_required && !app.passcode) {
           document.getElementById("passcodeModal").classList.add("open");
@@ -1678,7 +1682,7 @@ When a homeowner project receives fewer than 4 blind contractor bids within the 
           const res = await apiFetch(`/api/sessions/${pathMatch[1]}`);
           loadSessionIntoUi(res.session);
           setStep(res.session.backlog_tree?.length ? 3 : 2);
-        } else {
+        } else if (!document.getElementById("prdTextInput").value.trim()) {
           loadSamplePrd(0);
         }
       } catch (err) {
