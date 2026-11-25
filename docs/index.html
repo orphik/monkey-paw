@@ -3,9 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="description" content="Interactive pre-code malicious compliance referee simulator for spec-driven development: lock bilingual decision cards, trap off-scope tangents into PARKING-LOT.md, and compile EARS, Spec-Kit, OpenSpec, or Jira specs." />
   <title>monkey-paw — Pre-Code Malicious Compliance Referee Simulator</title>
   <style>
     :root {
+      color-scheme: dark;
       --bg-0: #090b10;
       --bg-1: #10141d;
       --bg-2: #161c28;
@@ -25,8 +28,41 @@
       --cyan-soft: rgba(56, 189, 248, 0.12);
       --violet: #a78bfa;
       --violet-soft: rgba(167, 139, 250, 0.12);
+      --scrollbar-track: #10141d;
+      --scrollbar-thumb: #64748b;
       --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
       --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+      accent-color: var(--amber);
+      scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    }
+
+    @supports not (scrollbar-color: auto) {
+      *::-webkit-scrollbar {
+        width: 12px;
+        height: 12px;
+      }
+      *::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-thumb);
+      }
+      *::-webkit-scrollbar-track {
+        background: var(--scrollbar-track);
+      }
+    }
+
+    ::selection {
+      background: rgba(245, 158, 11, 0.32);
+      color: var(--text-0);
+    }
+
+    :where(a:any-link, button, input, select, textarea, [tabindex="0"]):focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 2px;
+    }
+    [tabindex="-1"]:focus:not(:focus-visible) {
+      outline: none;
+    }
+    :where(input, textarea, select):not([type="range"]):user-invalid {
+      border-color: var(--crimson);
     }
 
     * {
@@ -659,6 +695,44 @@
       font-weight: 700;
     }
 
+    .code-output code {
+      font-family: inherit;
+      color: inherit;
+    }
+
+    .visually-hidden:where(:not(:focus-within, :active)) {
+      position: absolute !important;
+      clip-path: inset(50%) !important;
+      overflow: hidden !important;
+      width: 1px !important;
+      height: 1px !important;
+      margin: -1px !important;
+      padding: 0 !important;
+      border: 0 !important;
+      white-space: nowrap !important;
+    }
+    .skip-link:focus-visible {
+      position: fixed;
+      top: 0.75rem;
+      left: 0.75rem;
+      z-index: 100;
+      background: var(--amber);
+      color: #090b10;
+      font-weight: 700;
+      font-size: 0.82rem;
+      padding: 0.45rem 0.85rem;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      ::view-transition-group(*),
+      ::view-transition-old(*),
+      ::view-transition-new(*) {
+        animation: none !important;
+      }
+    }
+
     .footer-note {
       max-width: 1520px;
       margin: 0 auto 2rem;
@@ -673,37 +747,40 @@
   </style>
 </head>
 <body>
+  <a href="#simulatorMain" class="skip-link visually-hidden">Skip to main content</a>
+  <div class="visually-hidden" id="simAnnouncer" role="status" aria-live="polite" aria-atomic="true"></div>
+
   <header class="topbar">
     <div class="brand">
-      <div class="brand-icon">MP</div>
+      <div class="brand-icon" aria-hidden="true">MP</div>
       <div>
-        <div class="brand-title">monkey-paw // Referee Simulator</div>
+        <h1 class="brand-title">monkey-paw // Referee Simulator</h1>
         <div class="brand-sub">Pre-Code Malicious Compliance Referee for Spec-Driven Development</div>
       </div>
     </div>
     <div class="header-meta">
       <span class="pill pill-offline">Zero API Keys · 100% Deterministic</span>
       <span class="pill">agentskills.io + MCP stdio</span>
-      <button class="install-cmd" id="copyInstallBtn" title="Click to copy install command">
+      <button type="button" class="install-cmd" id="copyInstallBtn" aria-label="Copy install command: npx skills add orphik/monkey-paw">
         $ npx skills add orphik/monkey-paw
       </button>
     </div>
   </header>
 
-  <section class="scenario-bar" aria-label="Broken Ticket Scenarios">
+  <nav class="scenario-bar" aria-label="Broken ticket scenarios">
     <div class="scenario-tabs" id="scenarioTabs"></div>
     <div class="status-cluster">
       <span class="lock-badge" id="lockStatusBadge">2/3 LOCKED</span>
-      <button class="action-btn" id="lockAllBtn">Lock Remaining (Option A)</button>
-      <button class="action-btn" id="resetScenarioBtn">Reset Card Choices</button>
+      <button type="button" class="action-btn" id="lockAllBtn">Lock Remaining (Option A)</button>
+      <button type="button" class="action-btn" id="resetScenarioBtn">Reset Card Choices</button>
     </div>
-  </section>
+  </nav>
 
-  <main class="workspace">
+  <main class="workspace" id="simulatorMain">
     <!-- Left Column: Draft Ticket + Bilingual Decision Cards + Tangent Trap -->
-    <section class="panel" aria-label="Referee Decision Cards">
+    <section class="panel" aria-labelledby="cardsPanelHeading">
       <div class="panel-header">
-        <span class="panel-title">1. Ambiguous Ticket + Bilingual Decision Cards</span>
+        <h2 class="panel-title" id="cardsPanelHeading">1. Ambiguous Ticket + Bilingual Decision Cards</h2>
         <span class="pill" id="surfaceModePill">mode: brownfield</span>
       </div>
 
@@ -712,7 +789,7 @@
           <span id="ticketSourceLabel">Linear Ticket</span>
           <span>Read-only scan: .monkey-paw/surface.json</span>
         </div>
-        <div class="draft-ticket-title" id="draftTitle"></div>
+        <h3 class="draft-ticket-title" id="draftTitle" tabindex="-1"></h3>
         <div class="draft-quote-block" id="draftRawText"></div>
         <div class="surface-strip" id="surfaceChips"></div>
       </div>
@@ -720,7 +797,7 @@
       <div class="cards-container" id="cardsContainer"></div>
 
       <div class="tangent-section">
-        <div class="tangent-title">Tangent Trap -&gt; PARKING-LOT.md</div>
+        <h3 class="tangent-title">Tangent Trap -&gt; PARKING-LOT.md</h3>
         <div class="tangent-sub">
           Keep spec refinement under 10 minutes. Route off-scope refactors and Phase-2 ideas into
           <code>PARKING-LOT.md</code> without derailing v1 decisions:
@@ -747,25 +824,25 @@
     </section>
 
     <!-- Right Column: Live EARS / Spec-Kit / OpenSpec / Jira / PARKING-LOT.md Output -->
-    <section class="panel sticky-compiler" aria-label="Compiled Specification Output">
+    <section class="panel sticky-compiler" aria-labelledby="outputPanelHeading">
       <div class="panel-header">
-        <span class="panel-title">2. Live Referee Output</span>
-        <div class="format-tabs" id="formatTabs">
-          <button class="fmt-tab active" data-fmt="ears">SPEC.md (EARS)</button>
-          <button class="fmt-tab" data-fmt="spec-kit">Spec-Kit</button>
-          <button class="fmt-tab" data-fmt="openspec">OpenSpec</button>
-          <button class="fmt-tab" data-fmt="jira">Jira</button>
-          <button class="fmt-tab" data-fmt="parking">PARKING-LOT.md (<span id="parkCountBadge">0</span>)</button>
+        <h2 class="panel-title" id="outputPanelHeading">2. Live Referee Output</h2>
+        <div class="format-tabs" id="formatTabs" role="group" aria-label="Specification output formats">
+          <button type="button" class="fmt-tab active" data-fmt="ears" aria-pressed="true">SPEC.md (EARS)</button>
+          <button type="button" class="fmt-tab" data-fmt="spec-kit" aria-pressed="false">Spec-Kit</button>
+          <button type="button" class="fmt-tab" data-fmt="openspec" aria-pressed="false">OpenSpec</button>
+          <button type="button" class="fmt-tab" data-fmt="jira" aria-pressed="false">Jira</button>
+          <button type="button" class="fmt-tab" data-fmt="parking" aria-pressed="false">PARKING-LOT.md (<span id="parkCountBadge">0</span>)</button>
         </div>
       </div>
       <div class="compiler-toolbar">
         <span id="outputFilenameLabel">Output: SPEC.md · Format: EARS (WHEN ... THE SYSTEM SHALL ...)</span>
         <div style="display:flex; gap:0.45rem;">
-          <button class="action-btn" id="copySpecBtn">Copy Markdown</button>
-          <button class="action-btn" id="downloadSpecBtn">Download File</button>
+          <button type="button" class="action-btn" id="copySpecBtn">Copy Markdown</button>
+          <button type="button" class="action-btn" id="downloadSpecBtn">Download File</button>
         </div>
       </div>
-      <pre class="code-output" id="compiledOutput"></pre>
+      <pre class="code-output" role="region" aria-labelledby="outputFilenameLabel" tabindex="0"><code id="compiledOutput"></code></pre>
     </section>
   </main>
 
@@ -1371,6 +1448,31 @@
       return lines.join("\n") + "\n";
     }
 
+    function announceSim(msg) {
+      const el = document.getElementById("simAnnouncer");
+      if (el) el.textContent = msg;
+    }
+
+    function switchScenario(idx) {
+      if (state.activeScenarioIdx === idx) return;
+      const focusScenarioHeading = () => {
+        document.getElementById("draftTitle")?.focus({ preventScroll: true });
+      };
+      if (!document.startViewTransition) {
+        state.activeScenarioIdx = idx;
+        render();
+        focusScenarioHeading();
+        return;
+      }
+      const transition = document.startViewTransition(() => {
+        state.activeScenarioIdx = idx;
+        render();
+      });
+      transition.finished.finally(() => {
+        focusScenarioHeading();
+      });
+    }
+
     function render() {
       const sc = currentScenario();
       const selMap = state.selections[sc.id];
@@ -1380,12 +1482,12 @@
       tabsEl.innerHTML = "";
       SCENARIOS.forEach((item, idx) => {
         const btn = document.createElement("button");
-        btn.className = "scenario-btn" + (idx === state.activeScenarioIdx ? " active" : "");
-        btn.innerHTML = `<span class="scenario-num">${item.number}</span><span>${escapeHtml(item.tabLabel)}</span>`;
-        btn.onclick = () => {
-          state.activeScenarioIdx = idx;
-          render();
-        };
+        btn.type = "button";
+        const active = idx === state.activeScenarioIdx;
+        btn.className = "scenario-btn" + (active ? " active" : "");
+        btn.setAttribute("aria-pressed", String(active));
+        btn.innerHTML = `<span class="scenario-num" aria-hidden="true">${item.number}</span><span>${escapeHtml(item.tabLabel)}</span>`;
+        btn.addEventListener("click", () => switchScenario(idx));
         tabsEl.appendChild(btn);
       });
 
@@ -1433,14 +1535,14 @@
             ${f.repo_citations.map((c) => `<span class="citation-pill">${escapeHtml(c)}</span>`).join("")}
           </div>
           <div class="options-grid">
-            <button type="button" class="opt-btn ${chosen === "option_a" ? "selected" : ""}" data-fid="${f.id}" data-opt="option_a">
+            <button type="button" class="opt-btn ${chosen === "option_a" ? "selected" : ""}" data-fid="${f.id}" data-opt="option_a" aria-pressed="${chosen === "option_a"}">
               <div class="opt-header">
                 <span>Option A · ${escapeHtml(f.options.option_a.label)}</span>
                 <span>${chosen === "option_a" ? "LOCKED" : "Select"}</span>
               </div>
               <div class="opt-design">${escapeHtml(f.options.option_a.design)}</div>
             </button>
-            <button type="button" class="opt-btn ${chosen === "option_b" ? "selected" : ""}" data-fid="${f.id}" data-opt="option_b">
+            <button type="button" class="opt-btn ${chosen === "option_b" ? "selected" : ""}" data-fid="${f.id}" data-opt="option_b" aria-pressed="${chosen === "option_b"}">
               <div class="opt-header">
                 <span>Option B · ${escapeHtml(f.options.option_b.label)}</span>
                 <span>${chosen === "option_b" ? "LOCKED" : "Select"}</span>
@@ -1496,7 +1598,9 @@
       // 6. Format Tabs & Output
       document.getElementById("parkCountBadge").textContent = String(state.parkedItems.length);
       document.querySelectorAll(".fmt-tab").forEach((tab) => {
-        tab.classList.toggle("active", tab.getAttribute("data-fmt") === state.activeFormat);
+        const active = tab.getAttribute("data-fmt") === state.activeFormat;
+        tab.classList.toggle("active", active);
+        tab.setAttribute("aria-pressed", String(active));
       });
 
       const fileLabel = document.getElementById("outputFilenameLabel");
@@ -1513,8 +1617,17 @@
     // Wire static controls
     document.querySelectorAll(".fmt-tab").forEach((tab) => {
       tab.addEventListener("click", () => {
-        state.activeFormat = tab.getAttribute("data-fmt");
-        render();
+        const nextFmt = tab.getAttribute("data-fmt");
+        if (state.activeFormat === nextFmt) return;
+        if (!document.startViewTransition) {
+          state.activeFormat = nextFmt;
+          render();
+          return;
+        }
+        document.startViewTransition(() => {
+          state.activeFormat = nextFmt;
+          render();
+        });
       });
     });
 
@@ -1527,6 +1640,7 @@
       });
       if (state.activeFormat === "parking") state.activeFormat = "ears";
       render();
+      announceSim(`All ${sc.findings.length} decision cards locked for ${sc.tabLabel}.`);
     });
 
     document.getElementById("resetScenarioBtn").addEventListener("click", () => {
@@ -1535,6 +1649,7 @@
         state.selections[sc.id][f.id] = null;
       });
       render();
+      announceSim(`Card choices reset for ${sc.tabLabel}.`);
     });
 
     document.getElementById("customTangentForm").addEventListener("submit", (e) => {
@@ -1551,6 +1666,7 @@
       input.value = "";
       state.activeFormat = "parking";
       render();
+      announceSim("Parked off-scope tangent in PARKING-LOT.md.");
     });
 
     document.getElementById("copyInstallBtn").addEventListener("click", (e) => {
@@ -1558,6 +1674,7 @@
       const btn = e.currentTarget;
       const orig = btn.textContent;
       btn.textContent = "Copied: npx skills add orphik/monkey-paw";
+      announceSim("Copied install command to clipboard.");
       setTimeout(() => (btn.textContent = orig), 1600);
     });
 
@@ -1567,6 +1684,7 @@
       const btn = e.currentTarget;
       const orig = btn.textContent;
       btn.textContent = "Copied!";
+      announceSim("Copied compiled Markdown to clipboard.");
       setTimeout(() => (btn.textContent = orig), 1400);
     });
 

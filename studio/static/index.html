@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
   <title>Monkey's Paw Studio — Pre-Code PRD Referee &amp; Backlog Compiler</title>
   <style>
     :root {
+      color-scheme: dark;
       --bg-0: #080a0f;
       --bg-1: #0f131c;
       --bg-2: #161c28;
@@ -25,8 +27,30 @@
       --cyan-bg: rgba(56, 189, 248, 0.12);
       --violet: #a78bfa;
       --violet-bg: rgba(167, 139, 250, 0.13);
+      --scrollbar-track: #0f131c;
+      --scrollbar-thumb: #64748b;
       --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
       --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+      accent-color: var(--amber);
+      scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    }
+
+    @supports not (scrollbar-color: auto) {
+      *::-webkit-scrollbar {
+        width: 12px;
+        height: 12px;
+      }
+      *::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-thumb);
+      }
+      *::-webkit-scrollbar-track {
+        background: var(--scrollbar-track);
+      }
+    }
+
+    ::selection {
+      background: rgba(245, 158, 11, 0.32);
+      color: var(--text-0);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -301,15 +325,41 @@
       color: var(--text-0);
     }
     .input:focus, .select:focus, .textarea:focus {
-      outline: none;
       border-color: var(--cyan);
     }
+    :where(a:any-link, button, input, select, textarea, summary, [tabindex="0"]):focus-visible,
+    .btn:has(.sr-file-input:focus-visible) {
+      outline: 2px solid var(--cyan);
+      outline-offset: 2px;
+    }
+    [tabindex="-1"]:focus:not(:focus-visible) {
+      outline: none;
+    }
+    :where(input, textarea, select):not([type="range"]):user-invalid {
+      border-color: var(--crimson);
+    }
     .textarea {
+      field-sizing: content;
+      height: auto;
+      width: 100%;
       min-height: 230px;
+      min-block-size: 10lh;
+      max-block-size: 28lh;
       font-family: var(--mono);
       font-size: 0.81rem;
       resize: vertical;
       line-height: 1.5;
+    }
+    .node-desc-textarea {
+      field-sizing: content;
+      height: auto;
+      width: 100%;
+      min-block-size: 2.6lh;
+      max-block-size: 12lh;
+      align-self: start;
+      font-size: 0.8rem;
+      resize: vertical;
+      line-height: 1.45;
     }
 
     /* Decision Cards */
@@ -333,13 +383,14 @@
     }
 
     .opt-card {
+      width: 100%;
       text-align: left;
       background: var(--bg-1);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 0.75rem;
       cursor: pointer;
-      transition: all 0.14s ease;
+      transition: border-color 0.14s ease, background-color 0.14s ease;
     }
     .opt-card:hover { border-color: var(--cyan); }
     .opt-card.selected {
@@ -454,35 +505,84 @@
       word-break: break-word;
     }
 
-    /* Modals */
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.72);
-      z-index: 80;
-      display: none;
-      place-items: center;
-      padding: 1rem;
+    .export-pre code {
+      font-family: inherit;
+      color: inherit;
     }
-    .modal-backdrop.open { display: grid; }
-    .modal {
+
+    /* Native Modal Dialogs */
+    .modal-dialog {
+      margin: auto;
       background: var(--bg-1);
       border: 1px solid var(--border-hi);
       border-radius: 12px;
       max-width: 540px;
-      width: 100%;
+      width: calc(100% - 2rem);
+      max-height: 88vh;
+      overflow-y: auto;
       padding: 1.25rem;
+      color: var(--text-0);
+    }
+    .modal-dialog-wide {
+      max-width: 680px;
+    }
+    dialog:modal {
+      overscroll-behavior: contain;
+    }
+    dialog::backdrop {
+      overflow: hidden;
+      overscroll-behavior: contain;
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(3px);
+    }
+
+    /* Visually Hidden & Skip Link Utilities */
+    .visually-hidden:where(:not(:focus-within, :active)),
+    .sr-file-input {
+      position: absolute !important;
+      clip-path: inset(50%) !important;
+      overflow: hidden !important;
+      width: 1px !important;
+      height: 1px !important;
+      margin: -1px !important;
+      padding: 0 !important;
+      border: 0 !important;
+      white-space: nowrap !important;
+    }
+    .skip-link:focus-visible {
+      position: fixed;
+      top: 0.75rem;
+      left: 0.75rem;
+      z-index: 100;
+      background: var(--amber);
+      color: #080a0f;
+      font-weight: 700;
+      font-size: 0.82rem;
+      padding: 0.45rem 0.85rem;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      ::view-transition-group(*),
+      ::view-transition-old(*),
+      ::view-transition-new(*) {
+        animation: none !important;
+      }
     }
 
     .hidden { display: none !important; }
   </style>
 </head>
 <body>
+  <a href="#mainContent" class="skip-link visually-hidden">Skip to main content</a>
+  <div class="visually-hidden" id="politeAnnouncer" aria-live="polite" aria-atomic="true"></div>
+
   <header class="topbar">
     <div class="brand">
-      <div class="brand-logo">MP</div>
+      <div class="brand-logo" aria-hidden="true">MP</div>
       <div>
-        <div class="brand-name">Monkey's Paw Studio</div>
+        <h1 class="brand-name">Monkey's Paw Studio</h1>
         <div class="brand-tag">PRD Referee · GitHub Repo Scanner · Editable Agile Backlog Compiler</div>
       </div>
     </div>
@@ -495,7 +595,7 @@
       <button class="btn" id="shareLinkBtn" type="button">Share Link</button>
       <label class="btn" style="cursor:pointer;">
         Import JSON
-        <input type="file" id="importJsonInput" accept=".json" style="display:none;" />
+        <input type="file" id="importJsonInput" class="sr-file-input" accept=".json" />
       </label>
       <button class="btn btn-emerald" id="setupEnvBtn" type="button">Setup Env Vars</button>
       <button class="btn" id="providerSettingsBtn" type="button">AI Engine</button>
@@ -503,29 +603,29 @@
   </header>
 
   <nav class="stepper" aria-label="Workflow stages">
-    <button class="step-tab active" data-step="1" type="button">
-      <div class="step-num">1</div>
+    <button class="step-tab active" data-step="1" type="button" aria-current="step">
+      <div class="step-num" aria-hidden="true">1</div>
       <div>
         <div class="step-label">Ingest PRD &amp; Repo</div>
         <div class="step-sub">Draft + GitHub or Greenfield</div>
       </div>
     </button>
     <button class="step-tab" data-step="2" type="button">
-      <div class="step-num">2</div>
+      <div class="step-num" aria-hidden="true">2</div>
       <div>
         <div class="step-label">Monkey's Paw Cards</div>
         <div class="step-sub" id="step2Sub">Lock A/B + Parking Lot</div>
       </div>
     </button>
     <button class="step-tab" data-step="3" type="button">
-      <div class="step-num">3</div>
+      <div class="step-num" aria-hidden="true">3</div>
       <div>
         <div class="step-label">Edit Backlog Tree</div>
         <div class="step-sub" id="step3Sub">Epics / Capabilities / Stories</div>
       </div>
     </button>
     <button class="step-tab" data-step="4" type="button">
-      <div class="step-num">4</div>
+      <div class="step-num" aria-hidden="true">4</div>
       <div>
         <div class="step-label">Export &amp; Sync</div>
         <div class="step-sub">Jira CSV · EARS · Spec-Kit</div>
@@ -533,10 +633,10 @@
     </button>
   </nav>
 
-  <main class="container">
-    <div class="banner" id="statusBanner">
+  <main class="container" id="mainContent">
+    <div class="banner" id="statusBanner" role="status" aria-live="polite">
       <span id="statusBannerText"></span>
-      <button class="btn btn-sm" type="button" onclick="hideBanner()">Dismiss</button>
+      <button class="btn btn-sm" id="dismissBannerBtn" type="button">Dismiss</button>
     </div>
 
     <!-- STEP 1: INGEST PRD & REPO -->
@@ -544,13 +644,13 @@
       <div class="grid-2">
         <div class="card">
           <div class="card-header">
-            <div class="card-title">1A. PRD, Ticket, or Draft Acceptance Criteria</div>
+            <h2 class="card-title" id="stepHeading1" tabindex="-1">1A. PRD, Ticket, or Draft Acceptance Criteria</h2>
             <div style="display:flex; gap:0.35rem; flex-wrap:wrap;">
-              <button class="btn btn-sm" type="button" onclick="loadSamplePrd(0)">Sample: Billing Pause</button>
-              <button class="btn btn-sm" type="button" onclick="loadSamplePrd(1)">Sample: Marketplace Escrow</button>
+              <button class="btn btn-sm" id="samplePrd0Btn" type="button">Sample: Billing Pause</button>
+              <button class="btn btn-sm" id="samplePrd1Btn" type="button">Sample: Marketplace Escrow</button>
               <label class="btn btn-sm" style="cursor:pointer;">
                 Upload .md/.txt
-                <input type="file" id="uploadPrdFile" accept=".md,.txt,.markdown" style="display:none;" />
+                <input type="file" id="uploadPrdFile" class="sr-file-input" accept=".md,.txt,.markdown" />
               </label>
             </div>
           </div>
@@ -566,7 +666,7 @@
 
         <div class="card">
           <div class="card-header">
-            <div class="card-title">1B. Codebase Context &amp; Hierarchy</div>
+            <h2 class="card-title">1B. Codebase Context &amp; Hierarchy</h2>
             <span class="pill pill-cyan" id="activeProviderBadge">Engine: Auto</span>
           </div>
 
@@ -620,7 +720,7 @@
       <div class="card">
         <div class="card-header">
           <div>
-            <div class="card-title" id="refereeHeaderTitle">2. Bilingual Decision Cards</div>
+            <h2 class="card-title" id="refereeHeaderTitle" tabindex="-1">2. Bilingual Decision Cards</h2>
             <div style="font-size:0.79rem; color:var(--text-2);" id="surfaceSummaryLine"></div>
           </div>
           <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
@@ -635,19 +735,19 @@
 
       <div class="card">
         <div class="card-header">
-          <div class="card-title">Tangent Trap -&gt; PARKING-LOT.md</div>
+          <h2 class="card-title">Tangent Trap -&gt; PARKING-LOT.md</h2>
           <span class="pill" id="parkedCountPill">0 Parked</span>
         </div>
         <form id="parkTangentForm" style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.75rem;">
-          <input class="input" id="parkItemInput" style="flex:2; min-width:220px;" placeholder="Park off-scope idea or Phase-2 feature (e.g., 'Build analytics export dashboard')..." />
-          <select class="select" id="parkCatSelect" style="width:auto;">
+          <input class="input" id="parkItemInput" aria-label="Off-scope tangent item" style="flex:2; min-width:220px;" placeholder="Park off-scope idea or Phase-2 feature (e.g., 'Build analytics export dashboard')..." />
+          <select class="select" id="parkCatSelect" aria-label="Tangent category" style="width:auto;">
             <option value="phase-2">phase-2</option>
             <option value="tech-debt">tech-debt</option>
             <option value="ux-polish">ux-polish</option>
             <option value="infra">infra</option>
             <option value="open-question">open-question</option>
           </select>
-          <input class="input" id="parkReasonInput" style="flex:1; min-width:180px;" placeholder="Why deferred / revisit trigger..." />
+          <input class="input" id="parkReasonInput" aria-label="Reason deferred or revisit trigger" style="flex:1; min-width:180px;" placeholder="Why deferred / revisit trigger..." />
           <button class="btn" type="submit">+ Park Tangent</button>
         </form>
         <div id="parkedListMount" style="font-size:0.81rem; color:var(--text-1);"></div>
@@ -659,20 +759,20 @@
       <div class="card">
         <div class="card-header">
           <div>
-            <div class="card-title">3. Editable Work Breakdown Hierarchy</div>
+            <h2 class="card-title" id="stepHeading3" tabindex="-1">3. Editable Work Breakdown Hierarchy</h2>
             <div style="font-size:0.79rem; color:var(--text-2);">
               Edit any title, story points, user story prose, touchpoints, or EARS acceptance criteria inline. Changes sync automatically.
             </div>
           </div>
           <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
-            <select class="select" id="editorPresetSelect" style="width:auto; font-size:0.78rem;">
+            <select class="select" id="editorPresetSelect" aria-label="Work breakdown hierarchy preset" style="width:auto; font-size:0.78rem;">
               <option value="enterprise_4tier">Epic -&gt; Capability -&gt; Feature -&gt; Story</option>
               <option value="capability_first">Capability -&gt; Epic -&gt; Feature -&gt; Story</option>
               <option value="agile_3tier">Epic -&gt; Feature -&gt; Story</option>
             </select>
             <button class="btn" id="addRootNodeBtn" type="button">+ Add Top-Level Item</button>
             <button class="btn" id="regenBacklogBtn" type="button">Regenerate from Cards</button>
-            <button class="btn btn-primary" type="button" onclick="setStep(4)">Export &amp; Jira CSV -&gt;</button>
+            <button class="btn btn-primary" id="goExportStepBtn" type="button">Export &amp; Jira CSV -&gt;</button>
           </div>
         </div>
 
@@ -684,95 +784,90 @@
     <section id="stepPanel4" class="hidden">
       <div class="card">
         <div class="card-header">
-          <div style="display:flex; gap:0.4rem; flex-wrap:wrap;" id="exportFormatTabs">
-            <button class="btn btn-sm btn-emerald" data-efmt="jira-csv" type="button">Jira CSV (.csv)</button>
-            <button class="btn btn-sm" data-efmt="backlog-md" type="button">BACKLOG.md</button>
-            <button class="btn btn-sm" data-efmt="ears" type="button">SPEC.md (EARS)</button>
-            <button class="btn btn-sm" data-efmt="spec-kit" type="button">Spec-Kit</button>
-            <button class="btn btn-sm" data-efmt="openspec" type="button">OpenSpec</button>
-            <button class="btn btn-sm" data-efmt="jira" type="button">Jira Checklist</button>
-            <button class="btn btn-sm" data-efmt="parking-md" type="button">PARKING-LOT.md</button>
-            <button class="btn btn-sm" data-efmt="bundle-json" type="button">Session JSON</button>
-          </div>
+          <h2 class="card-title" id="stepHeading4" tabindex="-1">4. Multi-Format Export &amp; Sync</h2>
           <div style="display:flex; gap:0.45rem;">
             <button class="btn" id="copyExportBtn" type="button">Copy to Clipboard</button>
             <button class="btn btn-primary" id="downloadExportBtn" type="button">Download File</button>
           </div>
         </div>
-        <div style="font-family:var(--mono); font-size:0.75rem; color:var(--text-2); margin-bottom:0.55rem;" id="exportMetaLabel"></div>
-        <pre class="export-pre" id="exportPreviewPre">Run an analysis and generate a backlog first to preview exports.</pre>
+        <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-bottom:0.85rem;" id="exportFormatTabs" role="group" aria-label="Export formats">
+          <button class="btn btn-sm btn-emerald" data-efmt="jira-csv" type="button" aria-pressed="true">Jira CSV (.csv)</button>
+          <button class="btn btn-sm" data-efmt="backlog-md" type="button" aria-pressed="false">BACKLOG.md</button>
+          <button class="btn btn-sm" data-efmt="ears" type="button" aria-pressed="false">SPEC.md (EARS)</button>
+          <button class="btn btn-sm" data-efmt="spec-kit" type="button" aria-pressed="false">Spec-Kit</button>
+          <button class="btn btn-sm" data-efmt="openspec" type="button" aria-pressed="false">OpenSpec</button>
+          <button class="btn btn-sm" data-efmt="jira" type="button" aria-pressed="false">Jira Checklist</button>
+          <button class="btn btn-sm" data-efmt="parking-md" type="button" aria-pressed="false">PARKING-LOT.md</button>
+          <button class="btn btn-sm" data-efmt="bundle-json" type="button" aria-pressed="false">Session JSON</button>
+        </div>
+        <div style="font-family:var(--mono); font-size:0.75rem; color:var(--text-2); margin-bottom:0.55rem;" id="exportMetaLabel">Export Preview</div>
+        <pre class="export-pre" role="region" aria-labelledby="exportMetaLabel" tabindex="0"><code id="exportPreviewPre">Run an analysis and generate a backlog first to preview exports.</code></pre>
       </div>
     </section>
   </main>
 
   <!-- SETUP ENV VARS MODAL (LOCALHOST .ENV WRITER + RAILWAY STATUS VIEWER) -->
-  <div class="modal-backdrop" id="envModal">
-    <div class="modal" style="max-width:680px; max-height:88vh; overflow-y:auto;">
-      <div class="card-header">
-        <div class="card-title">Setup Environment Variables</div>
-        <button class="btn btn-sm" type="button" onclick="closeEnvModal()">Close</button>
-      </div>
-      <div id="envModalModeBanner" style="font-size:0.8rem; color:var(--text-1); background:var(--bg-0); border:1px solid var(--border); border-radius:7px; padding:0.65rem 0.8rem; margin-bottom:0.85rem;"></div>
-      <div id="envVarsFieldsMount"></div>
-      <div id="envSaveFooter" style="margin-top:0.9rem;">
-        <button class="btn btn-primary" id="saveEnvBtn" type="button" style="width:100%; justify-content:center;">
-          Save to Local .env &amp; Apply Immediately
-        </button>
-      </div>
+  <dialog class="modal-dialog modal-dialog-wide" id="envModal" closedby="any" aria-labelledby="envDialogTitle">
+    <div class="card-header">
+      <h1 class="card-title" id="envDialogTitle">Setup Environment Variables</h1>
+      <button class="btn btn-sm" id="closeEnvModalBtn" type="button" autofocus>Close</button>
     </div>
-  </div>
+    <div id="envModalModeBanner" style="font-size:0.8rem; color:var(--text-1); background:var(--bg-0); border:1px solid var(--border); border-radius:7px; padding:0.65rem 0.8rem; margin-bottom:0.85rem;"></div>
+    <div id="envVarsFieldsMount"></div>
+    <div id="envSaveFooter" style="margin-top:0.9rem;">
+      <button class="btn btn-primary" id="saveEnvBtn" type="button" style="width:100%; justify-content:center;">
+        Save to Local .env &amp; Apply Immediately
+      </button>
+    </div>
+  </dialog>
 
   <!-- PROVIDER / BYOK MODAL -->
-  <div class="modal-backdrop" id="providerModal">
-    <div class="modal">
-      <div class="card-header">
-        <div class="card-title">AI Model &amp; Key Settings</div>
-        <button class="btn btn-sm" type="button" onclick="closeProviderModal()">Close</button>
-      </div>
-      <div class="field">
-        <label for="provSelect">Provider</label>
-        <select class="select" id="provSelect">
-          <option value="auto">Auto (Server Env Key if present, else Deterministic Sandbox)</option>
-          <option value="demo">Deterministic Sandbox (Zero API Key — Instant Offline Mode)</option>
-          <option value="gemini">Google Gemini (gemini-3.8-flash / pro)</option>
-          <option value="anthropic">Anthropic Claude (claude-sonnet-4-20250514)</option>
-          <option value="openai">OpenAI (gpt-4.1-mini / gpt-4o)</option>
-          <option value="openai_compatible">OpenAI-Compatible (Ollama / OpenRouter / vLLM)</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="provModelInput">Model Override (optional)</label>
-        <input class="input" id="provModelInput" placeholder="Leave blank for provider default" />
-      </div>
-      <div class="field">
-        <label for="provKeyInput">API Key (optional if configured on server — stored in browser sessionStorage only)</label>
-        <input class="input" type="password" id="provKeyInput" placeholder="AIza... / sk-ant-... / sk-..." />
-      </div>
-      <div class="field">
-        <label for="provBaseUrlInput">Custom Base URL (only for OpenAI-Compatible / Ollama)</label>
-        <input class="input" id="provBaseUrlInput" placeholder="http://localhost:11434/v1" />
-      </div>
-      <div style="font-size:0.76rem; color:var(--text-2); margin-bottom:0.9rem;" id="serverKeyStatusNote"></div>
-      <button class="btn btn-primary" type="button" style="width:100%; justify-content:center;" onclick="saveProviderModal()">Save Provider Settings</button>
+  <dialog class="modal-dialog" id="providerModal" closedby="any" aria-labelledby="providerDialogTitle">
+    <div class="card-header">
+      <h1 class="card-title" id="providerDialogTitle">AI Model &amp; Key Settings</h1>
+      <button class="btn btn-sm" id="closeProviderModalBtn" type="button">Close</button>
     </div>
-  </div>
+    <div class="field">
+      <label for="provSelect">Provider</label>
+      <select class="select" id="provSelect" autofocus>
+        <option value="auto">Auto (Server Env Key if present, else Deterministic Sandbox)</option>
+        <option value="demo">Deterministic Sandbox (Zero API Key — Instant Offline Mode)</option>
+        <option value="gemini">Google Gemini (gemini-3.8-flash / pro)</option>
+        <option value="anthropic">Anthropic Claude (claude-sonnet-4-20250514)</option>
+        <option value="openai">OpenAI (gpt-4.1-mini / gpt-4o)</option>
+        <option value="openai_compatible">OpenAI-Compatible (Ollama / OpenRouter / vLLM)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="provModelInput">Model Override (optional)</label>
+      <input class="input" id="provModelInput" placeholder="Leave blank for provider default" />
+    </div>
+    <div class="field">
+      <label for="provKeyInput">API Key (optional if configured on server — stored in browser sessionStorage only)</label>
+      <input class="input" type="password" id="provKeyInput" placeholder="AIza... / sk-ant-... / sk-..." />
+    </div>
+    <div class="field">
+      <label for="provBaseUrlInput">Custom Base URL (only for OpenAI-Compatible / Ollama)</label>
+      <input class="input" type="url" id="provBaseUrlInput" placeholder="http://localhost:11434/v1" />
+    </div>
+    <div style="font-size:0.76rem; color:var(--text-2); margin-bottom:0.9rem;" id="serverKeyStatusNote"></div>
+    <button class="btn btn-primary" id="saveProviderBtn" type="button" style="width:100%; justify-content:center;">Save Provider Settings</button>
+  </dialog>
 
   <!-- PASSCODE GATE MODAL -->
-  <div class="modal-backdrop" id="passcodeModal">
-    <div class="modal">
-      <div class="card-title" style="margin-bottom:0.5rem;">Unlock Monkey's Paw Studio</div>
-      <p style="font-size:0.82rem; color:var(--text-2); margin-bottom:0.9rem;">
-        This Studio deployment is protected by <code>STUDIO_PASSCODE</code>.
-      </p>
-      <form id="passcodeForm">
-        <div class="field">
-          <label for="passcodeInput">Access Passcode</label>
-          <input class="input" type="password" id="passcodeInput" required autofocus />
-        </div>
-        <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">Unlock Studio</button>
-      </form>
-    </div>
-  </div>
+  <dialog class="modal-dialog" id="passcodeModal" closedby="none" aria-labelledby="passcodeDialogTitle">
+    <h1 class="card-title" id="passcodeDialogTitle" style="margin-bottom:0.5rem;">Unlock Monkey's Paw Studio</h1>
+    <p style="font-size:0.82rem; color:var(--text-2); margin-bottom:0.9rem;">
+      This Studio deployment is protected by <code>STUDIO_PASSCODE</code>.
+    </p>
+    <form id="passcodeForm">
+      <div class="field">
+        <label for="passcodeInput">Access Passcode</label>
+        <input class="input" type="password" id="passcodeInput" autocomplete="current-password" required autofocus />
+      </div>
+      <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">Unlock Studio</button>
+    </form>
+  </dialog>
 
   <script>
     const SAMPLE_PRDS = [
@@ -820,8 +915,27 @@ When a homeowner project receives fewer than 4 blind contractor bids within the 
       saveTimer: null
     };
 
+    function announcePolite(msg) {
+      const el = document.getElementById("politeAnnouncer");
+      if (el) el.textContent = msg;
+    }
+
+    function showModalSafe(dialogEl) {
+      if (dialogEl && !dialogEl.open) {
+        dialogEl.showModal();
+      }
+    }
+
+    function closeModalSafe(dialogEl) {
+      if (dialogEl && dialogEl.open) {
+        dialogEl.close();
+      }
+    }
+
     function showBanner(msg, kind = "error") {
       const el = document.getElementById("statusBanner");
+      el.setAttribute("role", kind === "error" ? "alert" : "status");
+      el.setAttribute("aria-live", kind === "error" ? "assertive" : "polite");
       el.className = "banner " + kind;
       document.getElementById("statusBannerText").textContent = msg;
     }
@@ -829,10 +943,11 @@ When a homeowner project receives fewer than 4 blind contractor bids within the 
       document.getElementById("statusBanner").className = "banner";
     }
 
-    function setSavePill(text, cls = "pill-emerald") {
+    function setSavePill(text, cls = "pill-emerald", announce = false) {
       const p = document.getElementById("saveStatePill");
       p.className = "pill " + cls;
       p.textContent = text;
+      if (announce) announcePolite(text);
     }
 
     async function apiFetch(path, options = {}) {
@@ -841,7 +956,7 @@ When a homeowner project receives fewer than 4 blind contractor bids within the 
       const resp = await fetch(path, Object.assign({}, options, { headers }));
       const data = await resp.json().catch(() => ({}));
       if (resp.status === 401 && data.passcode_required) {
-        document.getElementById("passcodeModal").classList.add("open");
+        showModalSafe(document.getElementById("passcodeModal"));
         throw new Error("Passcode required.");
       }
       if (!resp.ok) {
@@ -858,16 +973,43 @@ When a homeowner project receives fewer than 4 blind contractor bids within the 
         .replace(/"/g, "&quot;");
     }
 
-    function setStep(n) {
+    function applyStepDom(n) {
       app.step = n;
       document.querySelectorAll(".step-tab").forEach((b) => {
-        b.classList.toggle("active", Number(b.getAttribute("data-step")) === n);
+        const active = Number(b.getAttribute("data-step")) === n;
+        b.classList.toggle("active", active);
+        if (active) {
+          b.setAttribute("aria-current", "step");
+        } else {
+          b.removeAttribute("aria-current");
+        }
       });
       [1, 2, 3, 4].forEach((idx) => {
         document.getElementById(`stepPanel${idx}`).classList.toggle("hidden", idx !== n);
       });
       if (n === 4 && app.session) {
         refreshExportPreview();
+      }
+    }
+
+    function focusStepHeading(n) {
+      const headingIds = { 1: "stepHeading1", 2: "refereeHeaderTitle", 3: "stepHeading3", 4: "stepHeading4" };
+      document.getElementById(headingIds[n])?.focus({ preventScroll: true });
+    }
+
+    function setStep(n, { moveFocus = true, animate = true } = {}) {
+      if (!animate || app.step === n || !document.startViewTransition) {
+        applyStepDom(n);
+        if (moveFocus) focusStepHeading(n);
+        return;
+      }
+      const transition = document.startViewTransition(() => {
+        applyStepDom(n);
+      });
+      if (moveFocus) {
+        transition.finished.finally(() => {
+          focusStepHeading(n);
+        });
       }
     }
 
@@ -932,10 +1074,10 @@ When a homeowner project receives fewer than 4 blind contractor bids within the 
           if (res.session?.updated_at && app.session) {
             app.session.updated_at = res.session.updated_at;
           }
-          setSavePill("All changes saved", "pill-emerald");
+          setSavePill("All changes saved", "pill-emerald", true);
           updateStepBadges();
         } catch (err) {
-          setSavePill("Offline backup only", "pill-amber");
+          setSavePill("Offline backup only", "pill-amber", true);
         }
       }, 450);
     }
@@ -1006,13 +1148,13 @@ When a homeowner project receives fewer than 4 blind contractor bids within the 
         const optB = typeof f.eng_options.option_b === "object" ? f.eng_options.option_b : { label: "Durable Scale", design: f.eng_options.option_b };
         const cits = (f.repo_citations || []).map((c) => `<span class="pill" style="font-size:0.68rem;">${esc(c)}</span>`).join(" ");
 
-        const card = document.createElement("div");
+        const card = document.createElement("article");
         card.className = "decision-card " + (sel ? "locked" : "");
         card.innerHTML = `
           <div style="display:flex; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.45rem;">
-            <div>
+            <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
               <span class="pill pill-amber">${esc(f.id)}</span>
-              <strong style="margin-left:0.4rem; font-size:0.93rem;">${esc(f.title || f.exploit_class)}</strong>
+              <h3 style="font-size:0.93rem; font-weight:700;">${esc(f.title || f.exploit_class)}</h3>
             </div>
             <span class="pill" style="border-color:var(--crimson); color:#fda4af;">${esc(f.exploit_class)}</span>
           </div>
@@ -1024,27 +1166,27 @@ When a homeowner project receives fewer than 4 blind contractor bids within the 
           </div>
           ${cits ? `<div style="margin-bottom:0.55rem; display:flex; gap:0.35rem; flex-wrap:wrap;">${cits}</div>` : ""}
           <div class="options-row">
-            <div class="opt-card ${sel === "option_a" ? "selected" : ""}" data-idx="${idx}" data-choice="option_a">
+            <button type="button" class="opt-card ${sel === "option_a" ? "selected" : ""}" data-idx="${idx}" data-choice="option_a" aria-pressed="${sel === "option_a"}">
               <div style="display:flex; justify-content:space-between; font-family:var(--mono); font-size:0.75rem; font-weight:700; color:var(--cyan); margin-bottom:0.25rem;">
                 <span>Option A · ${esc(optA.label || "")}</span>
                 <span>${sel === "option_a" ? "LOCKED" : "Choose A"}</span>
               </div>
               <div style="font-size:0.8rem;">${esc(optA.design || optA.summary || "")}</div>
-            </div>
-            <div class="opt-card ${sel === "option_b" ? "selected" : ""}" data-idx="${idx}" data-choice="option_b">
+            </button>
+            <button type="button" class="opt-card ${sel === "option_b" ? "selected" : ""}" data-idx="${idx}" data-choice="option_b" aria-pressed="${sel === "option_b"}">
               <div style="display:flex; justify-content:space-between; font-family:var(--mono); font-size:0.75rem; font-weight:700; color:var(--cyan); margin-bottom:0.25rem;">
                 <span>Option B · ${esc(optB.label || "")}</span>
                 <span>${sel === "option_b" ? "LOCKED" : "Choose B"}</span>
               </div>
               <div style="font-size:0.8rem;">${esc(optB.design || optB.summary || "")}</div>
-            </div>
+            </button>
           </div>
           <div style="margin-bottom:0.6rem;">
-            <button class="btn btn-sm ${sel === "custom" ? "btn-emerald" : ""}" type="button" data-custom-toggle="${idx}">
+            <button class="btn btn-sm ${sel === "custom" ? "btn-emerald" : ""}" type="button" data-custom-toggle="${idx}" aria-pressed="${sel === "custom"}">
               ${sel === "custom" ? "Custom Guardrail Locked" : "Or Specify Custom Guardrail"}
             </button>
             <div class="${sel === "custom" ? "" : "hidden"}" style="margin-top:0.45rem;" id="customBox_${idx}">
-              <input class="input" data-custom-input="${idx}" value="${esc(f.resolution?.custom_design || "")}" placeholder="Describe custom engineering resolution (>= 15 chars, concrete design)..." />
+              <input class="input" aria-label="Custom engineering guardrail for ${esc(f.id)}" data-custom-input="${idx}" value="${esc(f.resolution?.custom_design || "")}" placeholder="Describe custom engineering resolution (>= 15 chars, concrete design)..." />
             </div>
           </div>
           <div class="pm-callout">
@@ -1153,21 +1295,21 @@ When a homeowner project receives fewer than 4 blind contractor bids within the 
         wrap.innerHTML = `
           <div class="node-top-bar">
             <span class="lvl-badge lvl-${esc(lvl)}">${esc(node.id)} · ${esc(lvl)}</span>
-            <input class="node-title-input" data-field="title" value="${esc(node.title)}" placeholder="${esc(lvl)} title..." />
-            <input class="node-est-input" data-field="estimate" value="${esc(node.estimate || "")}" placeholder="Pts" title="Story Points / Estimate" />
+            <input class="node-title-input" data-field="title" aria-label="${esc(node.id)} title" value="${esc(node.title)}" placeholder="${esc(lvl)} title..." />
+            <input class="node-est-input" data-field="estimate" aria-label="${esc(node.id)} story points estimate" value="${esc(node.estimate || "")}" placeholder="Pts" />
             ${guardsHtml}
             <div style="display:flex; gap:0.25rem;">
               ${childLvl ? `<button class="btn btn-sm btn-emerald" type="button" data-act="add-child">+ ${esc(childLvl)}</button>` : ""}
-              <button class="btn btn-sm" type="button" data-act="up" ${idx === 0 ? "disabled" : ""}>↑</button>
-              <button class="btn btn-sm" type="button" data-act="down" ${idx === parentArr.length - 1 ? "disabled" : ""}>↓</button>
-              <button class="btn btn-sm btn-danger" type="button" data-act="del">Delete</button>
+              <button class="btn btn-sm" type="button" data-act="up" aria-label="Move ${esc(node.id)} up" ${idx === 0 ? "disabled" : ""}>↑</button>
+              <button class="btn btn-sm" type="button" data-act="down" aria-label="Move ${esc(node.id)} down" ${idx === parentArr.length - 1 ? "disabled" : ""}>↓</button>
+              <button class="btn btn-sm btn-danger" type="button" data-act="del" aria-label="Delete ${esc(node.id)}">Delete</button>
             </div>
           </div>
           <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:0.5rem; margin-bottom:0.45rem;">
-            <textarea class="input" data-field="desc" rows="2" style="font-size:0.8rem; resize:vertical;" placeholder="${
+            <textarea class="input node-desc-textarea" data-field="desc" aria-label="${esc(node.id)} description" rows="2" placeholder="${
               lvl === "story" ? "As a <persona>, I want <capability>, so that <outcome>..." : "Scope & outcome description..."
             }">${esc(node.description || "")}</textarea>
-            <input class="input" data-field="touch" value="${esc((node.repo_touchpoints || []).join(", "))}" style="font-family:var(--mono); font-size:0.75rem;" placeholder="Repo touchpoints (comma-separated, e.g. app/billing.py:42)" />
+            <input class="input" data-field="touch" aria-label="${esc(node.id)} repository touchpoints" value="${esc((node.repo_touchpoints || []).join(", "))}" style="font-family:var(--mono); font-size:0.75rem; align-self:start;" placeholder="Repo touchpoints (comma-separated, e.g. app/billing.py:42)" />
           </div>
           <div>
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -1205,8 +1347,8 @@ When a homeowner project receives fewer than 4 blind contractor bids within the 
           const row = document.createElement("div");
           row.className = "ac-row";
           row.innerHTML = `
-            <input class="ac-input" value="${esc(acText)}" />
-            <button class="btn btn-sm btn-danger" type="button">x</button>
+            <input class="ac-input" aria-label="${esc(node.id)} acceptance criterion ${acIdx + 1}" value="${esc(acText)}" />
+            <button class="btn btn-sm btn-danger" type="button" aria-label="Remove criterion ${acIdx + 1} from ${esc(node.id)}">x</button>
           `;
           row.querySelector("input").oninput = (e) => {
             node.acceptance_criteria[acIdx] = e.target.value;
@@ -1318,10 +1460,10 @@ When a homeowner project receives fewer than 4 blind contractor bids within the 
       document.getElementById("provModelInput").value = app.providerCfg.model || "";
       document.getElementById("provKeyInput").value = app.providerCfg.api_key || "";
       document.getElementById("provBaseUrlInput").value = app.providerCfg.base_url || "";
-      document.getElementById("providerModal").classList.add("open");
+      showModalSafe(document.getElementById("providerModal"));
     }
     function closeProviderModal() {
-      document.getElementById("providerModal").classList.remove("open");
+      closeModalSafe(document.getElementById("providerModal"));
     }
     function saveProviderModal() {
       app.providerCfg = {
@@ -1340,14 +1482,14 @@ When a homeowner project receives fewer than 4 blind contractor bids within the 
       try {
         const data = await apiFetch("/api/env");
         renderEnvModalFields(data);
-        document.getElementById("envModal").classList.add("open");
+        showModalSafe(document.getElementById("envModal"));
       } catch (err) {
         showBanner(err.message, "error");
       }
     }
 
     function closeEnvModal() {
-      document.getElementById("envModal").classList.remove("open");
+      closeModalSafe(document.getElementById("envModal"));
     }
 
     function renderEnvModalFields(envData) {
@@ -1370,21 +1512,22 @@ When a homeowner project receives fewer than 4 blind contractor bids within the 
         const row = document.createElement("div");
         row.className = "field";
         row.style.marginBottom = "0.7rem";
+        const inputId = `envInput_${esc(v.key)}`;
         const statusBadge = v.configured
           ? `<span class="pill pill-emerald" style="font-size:0.68rem;">Active (${esc(v.masked_value)} · ${esc(v.source)})</span>`
           : `<span class="pill" style="font-size:0.68rem; color:var(--text-2);">Not Set</span>`;
 
         row.innerHTML = `
           <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; margin-bottom:0.28rem;">
-            <label style="margin:0;"><code>${esc(v.key)}</code> — ${esc(v.label)}</label>
+            ${editable ? `<label for="${inputId}" style="margin:0;"><code>${esc(v.key)}</code> — ${esc(v.label)}</label>` : `<span style="font-size:0.78rem; font-weight:600; color:var(--text-1);"><code>${esc(v.key)}</code> — ${esc(v.label)}</span>`}
             <div style="display:flex; gap:0.35rem; align-items:center;">
               ${statusBadge}
-              ${editable && v.configured ? `<button class="btn btn-sm btn-danger" type="button" data-clear-env="${esc(v.key)}">Clear</button>` : ""}
+              ${editable && v.configured ? `<button class="btn btn-sm btn-danger" type="button" data-clear-env="${esc(v.key)}" aria-label="Clear ${esc(v.key)}">Clear</button>` : ""}
             </div>
           </div>
           ${
             editable
-              ? `<input class="input" type="${v.secret ? "password" : "text"}" data-env-input="${esc(v.key)}" placeholder="${
+              ? `<input class="input" id="${inputId}" type="${v.secret ? "password" : "text"}" data-env-input="${esc(v.key)}" placeholder="${
                   v.configured ? "Leave blank to keep active value, or paste new value..." : esc(v.placeholder)
                 }" />`
               : ""
@@ -1499,8 +1642,54 @@ When a homeowner project receives fewer than 4 blind contractor bids within the 
 
     // Wire listeners
     document.querySelectorAll(".step-tab").forEach((b) => {
-      b.onclick = () => setStep(Number(b.getAttribute("data-step")));
+      b.addEventListener("click", () => setStep(Number(b.getAttribute("data-step"))));
     });
+    document.getElementById("dismissBannerBtn").addEventListener("click", hideBanner);
+    document.getElementById("samplePrd0Btn").addEventListener("click", () => loadSamplePrd(0));
+    document.getElementById("samplePrd1Btn").addEventListener("click", () => loadSamplePrd(1));
+    document.getElementById("goExportStepBtn").addEventListener("click", () => setStep(4));
+    document.getElementById("closeEnvModalBtn").addEventListener("click", closeEnvModal);
+    document.getElementById("closeProviderModalBtn").addEventListener("click", closeProviderModal);
+    document.getElementById("saveProviderBtn").addEventListener("click", saveProviderModal);
+
+    document.querySelectorAll("dialog.modal-dialog").forEach((dlg) => {
+      dlg.addEventListener("close", () => {
+        dlg.returnValue = "";
+      });
+    });
+
+    document.getElementById("passcodeModal").addEventListener("cancel", (e) => {
+      if (app.config?.passcode_required && !app.passcode) {
+        e.preventDefault();
+      }
+    });
+
+    // Fallback for browsers without native <dialog closedby> support
+    if (!("closedBy" in HTMLDialogElement.prototype)) {
+      document.querySelectorAll('dialog[closedby="any"]').forEach((dialog) => {
+        let pressedOutside = true;
+        const isOutside = (event) => {
+          const rect = dialog.getBoundingClientRect();
+          return (
+            event.clientY < rect.top ||
+            event.clientY > rect.top + rect.height ||
+            event.clientX < rect.left ||
+            event.clientX > rect.left + rect.width
+          );
+        };
+        dialog.addEventListener("pointerdown", (event) => {
+          pressedOutside = event.target === dialog && isOutside(event);
+        });
+        dialog.addEventListener("click", (event) => {
+          if (event.target !== dialog) return;
+          if (pressedOutside && isOutside(event)) {
+            dialog.close();
+          }
+          pressedOutside = true;
+        });
+      });
+    }
+
     document.getElementById("sourceTypeSelect").onchange = updateSourceVisibility;
     document.getElementById("setupEnvBtn").onclick = openEnvModal;
     document.getElementById("saveEnvBtn").onclick = saveEnvVarsFromModal;
@@ -1612,12 +1801,16 @@ When a homeowner project receives fewer than 4 blind contractor bids within the 
     };
 
     document.querySelectorAll("#exportFormatTabs button").forEach((btn) => {
-      btn.onclick = () => {
-        document.querySelectorAll("#exportFormatTabs button").forEach((b) => b.classList.remove("btn-emerald"));
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#exportFormatTabs button").forEach((b) => {
+          b.classList.remove("btn-emerald");
+          b.setAttribute("aria-pressed", "false");
+        });
         btn.classList.add("btn-emerald");
+        btn.setAttribute("aria-pressed", "true");
         app.activeExportFmt = btn.getAttribute("data-efmt");
         refreshExportPreview();
-      };
+      });
     });
 
     document.getElementById("copyExportBtn").onclick = () => {
@@ -1646,7 +1839,7 @@ When a homeowner project receives fewer than 4 blind contractor bids within the 
       try {
         await apiFetch("/api/auth/verify", { method: "POST", body: JSON.stringify({ passcode: val }) });
         sessionStorage.setItem("mp_studio_passcode", val);
-        document.getElementById("passcodeModal").classList.remove("open");
+        closeModalSafe(document.getElementById("passcodeModal"));
         hideBanner();
         await bootApp();
       } catch (_) {
@@ -1672,7 +1865,7 @@ When a homeowner project receives fewer than 4 blind contractor bids within the 
           activeProv === "auto" ? `Engine: auto (${resolvedHint})` : `Engine: ${activeProv}`;
 
         if (cfg.passcode_required && !app.passcode) {
-          document.getElementById("passcodeModal").classList.add("open");
+          showModalSafe(document.getElementById("passcodeModal"));
           return;
         }
 
@@ -1683,7 +1876,7 @@ When a homeowner project receives fewer than 4 blind contractor bids within the 
         if (pathMatch) {
           const res = await apiFetch(`/api/sessions/${pathMatch[1]}`);
           loadSessionIntoUi(res.session);
-          setStep(res.session.backlog_tree?.length ? 3 : 2);
+          setStep(res.session.backlog_tree?.length ? 3 : 2, { moveFocus: false, animate: false });
         } else if (!document.getElementById("prdTextInput").value.trim()) {
           loadSamplePrd(0);
         }
