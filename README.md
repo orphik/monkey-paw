@@ -1,5 +1,13 @@
 # `monkey-paw`
 
+> [!IMPORTANT]
+> **🚀 `monkey-paw` Has Evolved into [SpecPrism (`spec-prism.app`)](https://spec-prism.app) · [`github.com/orphik/specprism`](https://github.com/orphik/specprism)**
+>
+> All 6 Malicious Compliance Exploit Classes, Bilingual Decision Cards, `PARKING-LOT.md`, and EARS validation from `monkey-paw` are now built directly into **SpecPrism** — plus a **free Visual Web Workbench**, **Vertical Story Slicing (`US-*`)**, **100% Zero-Orphan `REQ-* <-> TC-*` Test Suites**, **9-Family LLM Dialect Diff Coach**, **Stage 5 Regression Shields**, **GitHub PR Spec-Drift Action**, **Stateless MCP `2026-07-28`**, and **Post-Code Visual UAT Scorecards**:
+> - **Web App (Free Daily Runs + BYOK):** **[https://spec-prism.app](https://spec-prism.app)**
+> - **Install Zero-Dep Agent Skill (Node 20+, no Python required):** `npx skills add orphik/specprism`
+> - **CLI & Stateless MCP:** `npx specprism@latest --help` · **[All-Skill-Levels Guide](https://spec-prism.app/guide)**
+
 **A coding agent is a literal-minded genie: give it an underspecified ticket, and it will pass every happy-path test while quietly corrupting production.**  
 **`monkey-paw` runs a deterministic, read-only <10-minute malicious compliance audit before a single line of app code is written.**
 
